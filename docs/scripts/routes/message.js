@@ -52,6 +52,7 @@ export default class Contacts {
                 msgSpan.style.cssText = 'cursor:pointer;color:rgb(var(--mdui-color-primary));font-weight:500;';
                 
                 msgSpan.addEventListener('click', () => {
+                                        console.log("Voice click — sessionId:", sessionId, "cached:", app.voiceRx.decodedAudio.has(sessionId), "map size:", app.voiceRx.decodedAudio.size);
                     const buffer = app.voiceRx.decodedAudio?.get(sessionId);
                     if (buffer) {
                         app.voiceRx.playAudioBuffer(buffer);
