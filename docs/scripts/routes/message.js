@@ -40,7 +40,34 @@ export default class Contacts {
             messageItem.getElementById("contactAvatar").style.backgroundColor = (contact.type === 2) ? "rgb(var(--mdui-color-on-secondary-dark))" : Helpers.stringToColour(name);
             messageItem.getElementById("contactName").innerText = isSelf ? `You (${name})` : name;
             messageItem.getElementById("messageTimeStamp").value = new Date(message.timestamp);
-            messageItem.getElementById("messageContent").innerText = message.message.text;
+            
+            // Check if this is a VE3 voice message
+            if (message.message.text && message.message.text.startsWith("VE3:")) {
+                const parts = message.message.text.substring(4).split(':');
+                const durSec = parts.length >= 4 ? parseInt(parts[3], 36) : '?';
+
+                const voiceDiv = document.createElement('div');
+                voiceDiv.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:20px;background:rgba(var(--mdui-color-primary),0.15);cursor:pointer;width:fit-content;';
+                voiceDiv.innerHTML = `<mdui-icon name="play_arrow" style="font-size:24px;color:rgb(var(--mdui-color-primary))"></mdui-icon><span style="color:rgb(var(--mdui-color-on-surface))">Voice message (${durSec}s)</span>`;
+                
+                voiceDiv.addEventListener('click', () => {
+                    // Try to replay from cache, or show unavailable
+                    const sessions = app.voiceRx.decodedAudio;
+                    const sessionId = parseInt(parts[0], 36);
+                    const buffer = sessions.get(sessionId);
+                    if (buffer) {
+                        app.voiceRx.playAudioBuffer(buffer);
+                        voiceDiv.querySelector('mdui-icon').setAttribute('name', 'volume_up');
+                        setTimeout(() => voiceDiv.querySelector('mdui-icon').setAttribute('name', 'play_arrow'), durSec * 1000);
+                    } else {
+                        voiceDiv.querySelector('span').textContent = `Voice message (${durSec}s) — expired`;
+                    }
+                });
+                
+                messageItem.getElementById("messageContent").replaceChildren(voiceDiv);
+            } else {
+                messageItem.getElementById("messageContent").innerText = message.message.text;
+            }
 
             newItems.push(messageItem);
         }

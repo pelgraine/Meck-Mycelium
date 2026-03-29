@@ -81,6 +81,7 @@ class VoiceReceiver {
         // Active incoming sessions keyed by sessionId
         this.sessions = new Map();
 this.orphanPackets = []; // Packets that arrived before their VE3 envelope
+this.decodedAudio = new Map(); // sessionId → audioBuffer
         // Codec2 WASM module (set via setCodec2Module or loadCodec2Wasm)
         this.codec2Module = null;
 
@@ -345,7 +346,7 @@ async loadCodec2Wasm(jsUrl) {
                 sessionId: session.sessionId,
             });
         }
-
+this.decodedAudio.set(session.sessionId, audioBuffer);
         this.playAudioBuffer(audioBuffer);
     }
     /**
