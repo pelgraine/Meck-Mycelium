@@ -3,6 +3,7 @@ import { WebSerialConnection, Constants, WebBleConnection } from "./libs/meshcor
 import { Router } from "./router.js";
 import { SimpleDB } from "./storage.js";
 import { CustomElements } from "./customElements.js";
+import VoiceReceiver from './libs/voice_receiver.js';
 
 class App extends EventTarget {
     constructor() {
@@ -25,6 +26,28 @@ class App extends EventTarget {
                 ]
             },
         });
+
+this.voiceRx = new VoiceReceiver();
+
+        this.voiceRx.onSessionStarted = ({ senderName, durationSec }) => {
+            snackbar({
+                message: `Voice message from ${senderName} (${durationSec}s) — receiving...`,
+                autoCloseDelay: 3000,
+                closeOnOutsideClick: true
+            });
+        };
+
+        this.voiceRx.onProgress = ({ senderName, received, total }) => {
+            console.log(`Voice: ${received}/${total} packets from ${senderName}`);
+        };
+
+        this.voiceRx.onVoiceReady = ({ senderName, durationSec }) => {
+            snackbar({
+                message: `Playing voice from ${senderName} (${durationSec}s)`,
+                autoCloseDelay: 3000,
+                closeOnOutsideClick: true
+            });
+        };
 
         this.defineUserInterface();
         this.setupSettings();
@@ -148,7 +171,9 @@ class App extends EventTarget {
         this.device.on("disconnected", () => this.handleDisconnected());
         this.device.on(Constants.PushCodes.MsgWaiting, () => this.handleMessage());
         this.device.on(Constants.PushCodes.SendConfirmed, () => this.handleMessageAck());
-
+   this.device.on(Constants.PushCodes.RawData, (data) => {
+            this.voiceRx.onRawData(data.payload);
+        });
         // this.device.on(Constants.PushCodes.NewAdvert, () => this.handleContact()); // when companion is set to manually add contacts
     }
 
@@ -196,9 +221,10 @@ class App extends EventTarget {
         this.ui.radioIndercator.removeAttribute("disabled");
         
         Router.handleRoute();
-        CustomElements.radioOnly();
+       try { CustomElements.radioOnly(); } catch(e) {}
 
         this.dispatchEvent(new CustomEvent("connected"));
+        this.voiceRx.loadCodec2Wasm('./scripts/libs/codec2/c2dec.js').catch(() => {});
     }
 
     async handleDisconnected() {
@@ -222,7 +248,12 @@ class App extends EventTarget {
             
             if (message.contactMessage) {
                 const contact = await this.device.findContactByPublicKeyPrefix(message.contactMessage.pubKeyPrefix);
-
+    
+                // Check for VE3 voice envelope
+                if (message.contactMessage.text && message.contactMessage.text.startsWith("VE3:")) {
+                    const senderName = contact?.advName || "Unknown";
+                    this.voiceRx.onVE3Envelope(senderName, message.contactMessage.text);
+                }
                 await this.db.add("messages", {
                     publicKey: contact.publicKey,
                     message: message.contactMessage,
@@ -248,7 +279,7 @@ class App extends EventTarget {
 }
 
 export const app = new App();
-
+window.app = app;
 function createRadioSelections() {
     const elements = document.querySelectorAll("mdui-dropdown");
 
