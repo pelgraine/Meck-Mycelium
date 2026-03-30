@@ -29,6 +29,7 @@ export default class Remote {
         document.getElementById("cfgSaveBtn").addEventListener("click", () => this.saveAndConnect());
         document.getElementById("cfgClearBtn").addEventListener("click", () => this.clearConfig());
         document.getElementById("cliSendBtn").addEventListener("click", () => this.sendCliCommand());
+        document.getElementById("otaSendBtn").addEventListener("click", () => this.sendOTA());
 
         // Enter key sends CLI command
         document.getElementById("cliInput").addEventListener("keydown", (e) => {
@@ -157,9 +158,8 @@ export default class Remote {
     }
 
     static onTelemetry(data) {
-        // Device
         const el = (id) => document.getElementById(id);
-        if (!el("telName")) return; // Not on this route
+        if (!el("telName")) return;
 
         el("telName").innerText = data.name || "—";
 
@@ -204,6 +204,12 @@ export default class Remote {
     static onResponse(text) {
         const log = document.getElementById("cliLog");
         if (!log) return;
+
+        // Update OTA status if this is an OTA message
+        if (text.startsWith("OTA:")) {
+            const otaStatus = document.getElementById("otaStatus");
+            if (otaStatus) otaStatus.innerText = text;
+        }
 
         const time = new Date().toLocaleTimeString();
         const entry = document.createElement("div");
@@ -256,6 +262,38 @@ export default class Remote {
             entry.style.opacity = "0.7";
             entry.innerHTML = `<span style="opacity:0.5;">[${time}]</span> > ${this.escapeHtml(cmd)}`;
             if (log) { log.appendChild(entry); log.scrollTop = log.scrollHeight; }
+        } else {
+            snackbar({ message: "Not connected", autoCloseDelay: 2000, closeOnOutsideClick: true });
+        }
+    }
+
+    static sendOTA() {
+        const url = document.getElementById("otaUrl").value.trim();
+        if (!url) {
+            snackbar({ message: "Enter a firmware URL", autoCloseDelay: 2000, closeOnOutsideClick: true });
+            return;
+        }
+        if (!url.endsWith(".bin")) {
+            if (!confirm("URL doesn't end in .bin — are you sure this is a firmware file?")) return;
+        }
+        if (!confirm(`Flash firmware from:\n${url}\n\nThe device will disconnect and reboot. Continue?`)) return;
+
+        if (mqttClient.sendOTA(url)) {
+            document.getElementById("otaStatus").innerText = "OTA request sent — device will download and flash...";
+
+            const log = document.getElementById("cliLog");
+            if (log) {
+                if (log.querySelector("span[style]") && log.children.length === 1) {
+                    log.innerHTML = "";
+                }
+                const time = new Date().toLocaleTimeString();
+                const entry = document.createElement("div");
+                entry.style.marginBottom = "6px";
+                entry.style.opacity = "0.7";
+                entry.innerHTML = `<span style="opacity:0.5;">[${time}]</span> > OTA: ${this.escapeHtml(url)}`;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
         } else {
             snackbar({ message: "Not connected", autoCloseDelay: 2000, closeOnOutsideClick: true });
         }

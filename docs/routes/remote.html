@@ -123,5 +123,22 @@
             </div>
         </mdui-card>
 
+        <!-- Firmware Update -->
+        <mdui-card style="padding: 16px; margin-bottom: 12px;">
+            <div style="font-weight: 500; margin-bottom: 8px;">
+                <mdui-icon name="system_update" class="material-symbols-outlined"
+                           style="vertical-align: middle; font-size: 20px;"></mdui-icon>
+                Firmware Update
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <mdui-text-field id="otaUrl" label="Firmware URL"
+                                 placeholder="https://github.com/.../firmware.bin"
+                                 style="flex: 1;"></mdui-text-field>
+                <mdui-button id="otaSendBtn" variant="tonal"
+                             style="align-self: flex-end;">Flash</mdui-button>
+            </div>
+            <div id="otaStatus" style="font-size: 13px; opacity: 0.7;"></div>
+        </mdui-card>
+
     </div>
 </div>
