@@ -20,6 +20,7 @@
         <script src="./scripts/libs/leaflet/leaflet.js"></script>
 
         <title>Mycelium</title>
+        <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     </head>
     <body>
         <div class="app-shell">
@@ -92,6 +93,10 @@
                         <mdui-icon name="settings" slot="icon" class="material-symbols-outlined"></mdui-icon>
                         Settings
                     </mdui-navigation-bar-item>
+                    <mdui-navigation-bar-item href="#remote" value="remote" spa-router>
+    <mdui-icon name="cell_tower" slot="icon" class="material-symbols-outlined"></mdui-icon>
+    Remote
+</mdui-navigation-bar-item>
                 </mdui-navigation-bar>
             </div>
         </div>

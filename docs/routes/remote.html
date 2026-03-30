@@ -1,0 +1,127 @@
+<route-settings title="Remote Admin" backbutton="false" navbar="true" titlebar="true"></route-settings>
+
+<div style="padding: 12px; max-width: 600px; margin: 0 auto;">
+
+    <!-- Connection Card -->
+    <mdui-card id="connectionCard" style="padding: 16px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <mdui-icon id="mqttStatusIcon" name="cloud_off" class="material-symbols-outlined"
+                       style="font-size: 28px;"></mdui-icon>
+            <div style="flex: 1;">
+                <div id="mqttStatusText" style="font-weight: 500;">Not Connected</div>
+                <div id="mqttDeviceId" style="font-size: 12px; opacity: 0.6;"></div>
+            </div>
+            <mdui-button id="mqttConnectBtn" variant="tonal">Connect</mdui-button>
+        </div>
+    </mdui-card>
+
+    <!-- Config Section (shown when disconnected) -->
+    <mdui-card id="configCard" style="padding: 16px; margin-bottom: 12px;">
+        <div style="font-weight: 500; margin-bottom: 12px;">MQTT Configuration</div>
+        <mdui-text-field id="cfgBroker" label="Broker Hostname"
+                         placeholder="abc123.s1.eu.hivemq.cloud"
+                         style="margin-bottom: 8px;"></mdui-text-field>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <mdui-text-field id="cfgPort" label="WS Port" value="8884"
+                             style="flex: 1;"></mdui-text-field>
+            <mdui-text-field id="cfgDeviceId" label="Device ID"
+                             placeholder="vk2ivy-remote"
+                             style="flex: 2;"></mdui-text-field>
+        </div>
+        <mdui-text-field id="cfgUsername" label="Username"
+                         style="margin-bottom: 8px;"></mdui-text-field>
+        <mdui-text-field id="cfgPassword" label="Password" type="password"
+                         toggle-password style="margin-bottom: 12px;"></mdui-text-field>
+        <div style="display: flex; gap: 8px;">
+            <mdui-button id="cfgSaveBtn" variant="filled">Save & Connect</mdui-button>
+            <mdui-button id="cfgClearBtn" variant="text">Clear</mdui-button>
+        </div>
+    </mdui-card>
+
+    <!-- Telemetry Section (shown when connected) -->
+    <div id="telemetrySection" style="display: none;">
+
+        <!-- Device Info -->
+        <mdui-card style="padding: 16px; margin-bottom: 12px;">
+            <div style="font-weight: 500; margin-bottom: 8px;">
+                <mdui-icon name="cell_tower" class="material-symbols-outlined"
+                           style="vertical-align: middle; font-size: 20px;"></mdui-icon>
+                Device
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px;">
+                <div style="opacity: 0.6;">Name</div>     <div id="telName">—</div>
+                <div style="opacity: 0.6;">Uptime</div>   <div id="telUptime">—</div>
+                <div style="opacity: 0.6;">Battery</div>  <div id="telBatt">—</div>
+                <div style="opacity: 0.6;">Heap</div>     <div id="telHeap">—</div>
+                <div style="opacity: 0.6;">Updated</div>  <div id="telLastUpdate">—</div>
+            </div>
+        </mdui-card>
+
+        <!-- Radio -->
+        <mdui-card style="padding: 16px; margin-bottom: 12px;">
+            <div style="font-weight: 500; margin-bottom: 8px;">
+                <mdui-icon name="radio" class="material-symbols-outlined"
+                           style="vertical-align: middle; font-size: 20px;"></mdui-icon>
+                Radio
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px;">
+                <div style="opacity: 0.6;">Frequency</div>  <div id="telFreq">—</div>
+                <div style="opacity: 0.6;">BW / SF / CR</div> <div id="telRadio">—</div>
+                <div style="opacity: 0.6;">TX Power</div>   <div id="telTx">—</div>
+            </div>
+        </mdui-card>
+
+        <!-- Cellular -->
+        <mdui-card style="padding: 16px; margin-bottom: 12px;">
+            <div style="font-weight: 500; margin-bottom: 8px;">
+                <mdui-icon name="signal_cellular_alt" class="material-symbols-outlined"
+                           style="vertical-align: middle; font-size: 20px;"></mdui-icon>
+                Cellular
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px;">
+                <div style="opacity: 0.6;">Signal</div>    <div id="telSignal">—</div>
+                <div style="opacity: 0.6;">Operator</div>  <div id="telOper">—</div>
+                <div style="opacity: 0.6;">APN</div>       <div id="telApn">—</div>
+                <div style="opacity: 0.6;">IP</div>        <div id="telIp">—</div>
+            </div>
+        </mdui-card>
+
+        <!-- CLI Terminal -->
+        <mdui-card style="padding: 16px; margin-bottom: 12px;">
+            <div style="font-weight: 500; margin-bottom: 8px;">
+                <mdui-icon name="terminal" class="material-symbols-outlined"
+                           style="vertical-align: middle; font-size: 20px;"></mdui-icon>
+                CLI Terminal
+            </div>
+
+            <!-- Quick action buttons -->
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+                <mdui-button class="quickCmd" data-cmd="get status" variant="outlined" size="small">Status</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="neighbors" variant="outlined" size="small">Neighbors</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="get radio" variant="outlined" size="small">Radio</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="version" variant="outlined" size="small">Version</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="get name" variant="outlined" size="small">Name</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="get tx" variant="outlined" size="small">TX Power</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="reboot" variant="outlined" size="small"
+                             style="--mdui-color-primary: var(--mdui-color-error);">Reboot</mdui-button>
+            </div>
+
+            <!-- Command input -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <mdui-text-field id="cliInput" label="Command"
+                                 placeholder="get status" style="flex: 1;"></mdui-text-field>
+                <mdui-button id="cliSendBtn" variant="tonal"
+                             style="align-self: flex-end;">Send</mdui-button>
+            </div>
+
+            <!-- Response log -->
+            <div id="cliLog"
+                 style="background: rgba(128,128,128,0.1); border-radius: 8px; padding: 12px;
+                        font-family: monospace; font-size: 13px; white-space: pre-wrap;
+                        max-height: 300px; overflow-y: auto; min-height: 60px;">
+                <span style="opacity: 0.4;">Responses will appear here...</span>
+            </div>
+        </mdui-card>
+
+    </div>
+</div>
