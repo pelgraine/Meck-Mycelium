@@ -96,12 +96,16 @@
 
             <!-- Quick action buttons -->
             <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
-                <mdui-button class="quickCmd" data-cmd="get status" variant="outlined" size="small">Status</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="stats-core" variant="outlined" size="small">Stats Core</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="stats-radio" variant="outlined" size="small">Stats Radio</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="stats-packets" variant="outlined" size="small">Stats Packets</mdui-button>
                 <mdui-button class="quickCmd" data-cmd="neighbors" variant="outlined" size="small">Neighbors</mdui-button>
                 <mdui-button class="quickCmd" data-cmd="get radio" variant="outlined" size="small">Radio</mdui-button>
                 <mdui-button class="quickCmd" data-cmd="version" variant="outlined" size="small">Version</mdui-button>
                 <mdui-button class="quickCmd" data-cmd="get name" variant="outlined" size="small">Name</mdui-button>
                 <mdui-button class="quickCmd" data-cmd="get tx" variant="outlined" size="small">TX Power</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="get path.hash.mode" variant="outlined" size="small">Path Hash</mdui-button>
+                <mdui-button class="quickCmd" data-cmd="clock" variant="outlined" size="small">Clock</mdui-button>
                 <mdui-button class="quickCmd" data-cmd="reboot" variant="outlined" size="small"
                              style="--mdui-color-primary: var(--mdui-color-error);">Reboot</mdui-button>
             </div>
@@ -109,7 +113,7 @@
             <!-- Command input -->
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                 <mdui-text-field id="cliInput" label="Command"
-                                 placeholder="get status" style="flex: 1;"></mdui-text-field>
+                                 placeholder="get radio" style="flex: 1;"></mdui-text-field>
                 <mdui-button id="cliSendBtn" variant="tonal"
                              style="align-self: flex-end;">Send</mdui-button>
             </div>

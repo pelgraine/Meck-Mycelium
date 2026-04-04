@@ -164,9 +164,10 @@ export default class Remote {
         el("telName").innerText = data.name || "—";
 
         if (data.uptime !== undefined) {
-            const h = Math.floor(data.uptime / 3600);
+            const d = Math.floor(data.uptime / 86400);
+            const h = Math.floor((data.uptime % 86400) / 3600);
             const m = Math.floor((data.uptime % 3600) / 60);
-            el("telUptime").innerText = `${h}h ${m}m`;
+            el("telUptime").innerText = d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m`;
         }
 
         if (data.batt_mv !== undefined) {
@@ -190,13 +191,17 @@ export default class Remote {
             el("telTx").innerText = `${data.tx} dBm`;
         }
 
-        // Cellular
+        // Cellular / WiFi signal
         if (data.csq !== undefined) {
             const bars = data.bars || 0;
-            const barStr = "▰".repeat(bars) + "▱".repeat(5 - bars);
+            const barStr = "\u25B0".repeat(bars) + "\u25B1".repeat(5 - bars);
             el("telSignal").innerText = `${barStr}  CSQ ${data.csq}`;
+        } else if (data.rssi !== undefined) {
+            const bars = data.bars || 0;
+            const barStr = "\u25B0".repeat(bars) + "\u25B1".repeat(5 - bars);
+            el("telSignal").innerText = `${barStr}  RSSI ${data.rssi} dBm`;
         }
-        el("telOper").innerText = data.oper || "—";
+        el("telOper").innerText = data.oper || data.ssid || "—";
         el("telApn").innerText = data.apn || "—";
         el("telIp").innerText = data.ip || "—";
     }
