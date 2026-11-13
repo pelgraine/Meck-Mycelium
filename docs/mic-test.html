@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mic test</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #121418; color: #e8e8e8; margin: 0; padding: 16px; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  button { font-size: 18px; padding: 14px; width: 100%; margin: 6px 0; border: 0; border-radius: 10px; background: #2a3550; color: #fff; }
+  button:disabled { opacity: 0.4; }
+  #rec.on { background: #a33; }
+  #meter { height: 14px; background: #2a2a2a; border-radius: 7px; overflow: hidden; margin: 10px 0; }
+  #bar { height: 100%; width: 0; background: #4c4; }
+  #status { font-size: 16px; margin: 8px 0; min-height: 22px; }
+  pre { font-size: 13px; background: #1c1f26; padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+<h1>Mic test</h1>
+<button id="rec">Record</button>
+<div id="meter"><div id="bar"></div></div>
+<div id="status">Tap Record. Recording stops by itself after 5 seconds.</div>
+<button id="play" disabled>Play back</button>
+<button id="copy">Copy results</button>
+<pre id="log"></pre>
+
+<script>
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+const recBtn = document.getElementById('rec');
+const playBtn = document.getElementById('play');
+const bar = document.getElementById('bar');
+
+function log(line) { logEl.textContent += line + '\n'; }
+
+// Environment report
+log('User agent: ' + navigator.userAgent);
+log('Secure page (HTTPS): ' + window.isSecureContext);
+log('Microphone API present: ' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+log('Bluetooth API present: ' + !!navigator.bluetooth);
+log('AudioContext present: ' + !!(window.AudioContext || window.webkitAudioContext));
+log('AudioWorklet present: ' + !!(window.AudioWorkletNode));
+log('MediaRecorder present: ' + !!(window.MediaRecorder));
+log('WebAssembly present: ' + (typeof WebAssembly !== 'undefined'));
+log('---');
+
+let ctx = null, stream = null, source = null, proc = null;
+let chunks = [], recording = false, stopTimer = null, peak = 0, recordedBuffer = null;
+
+async function startRecording() {
+  chunks = []; peak = 0;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    log('Microphone permission: granted');
+  } catch (e) {
+    log('Microphone permission FAILED: ' + e.name + ': ' + e.message);
+    statusEl.textContent = 'Microphone not available: ' + e.name;
+    return;
+  }
+  ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') await ctx.resume();
+  log('Audio sample rate: ' + ctx.sampleRate + ' Hz');
+  source = ctx.createMediaStreamSource(stream);
+  proc = ctx.createScriptProcessor(4096, 1, 1);
+  proc.onaudioprocess = (ev) => {
+    if (!recording) return;
+    const data = ev.inputBuffer.getChannelData(0);
+    chunks.push(new Float32Array(data));
+    let p = 0;
+    for (let i = 0; i < data.length; i++) { const v = Math.abs(data[i]); if (v > p) p = v; }
+    if (p > peak) peak = p;
+    bar.style.width = Math.min(100, p * 100) + '%';
+  };
+  source.connect(proc);
+  proc.connect(ctx.destination);
+  recording = true;
+  recBtn.textContent = 'Stop'; recBtn.classList.add('on');
+  statusEl.textContent = 'Recording... speak now';
+  stopTimer = setTimeout(stopRecording, 5000);
+}
+
+function stopRecording() {
+  if (!recording) return;
+  recording = false;
+  clearTimeout(stopTimer);
+  if (proc) { proc.disconnect(); proc.onaudioprocess = null; }
+  if (source) source.disconnect();
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  recBtn.textContent = 'Record'; recBtn.classList.remove('on');
+  bar.style.width = '0';
+
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const seconds = total / ctx.sampleRate;
+  log('Captured: ' + total + ' samples (' + seconds.toFixed(2) + ' s)');
+  log('Loudest sample: ' + (peak * 100).toFixed(1) + '% of full scale');
+  if (total === 0) {
+    statusEl.textContent = 'No audio captured.';
+    log('Result: NO AUDIO CAPTURED');
+    return;
+  }
+  recordedBuffer = ctx.createBuffer(1, total, ctx.sampleRate);
+  const out = recordedBuffer.getChannelData(0);
+  let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  playBtn.disabled = false;
+  statusEl.textContent = 'Recorded ' + seconds.toFixed(1) + ' s. Tap Play back.';
+  log(peak < 0.01 ? 'Result: audio captured but it is silent' : 'Result: AUDIO CAPTURED');
+  log('---');
+}
+
+recBtn.onclick = () => { recording ? stopRecording() : startRecording(); };
+
+playBtn.onclick = async () => {
+  if (!recordedBuffer) return;
+  if (ctx.state === 'suspended') await ctx.resume();
+  const src = ctx.createBufferSource();
+  src.buffer = recordedBuffer;
+  src.connect(ctx.destination);
+  src.start();
+  statusEl.textContent = 'Playing...';
+  src.onended = () => { statusEl.textContent = 'Done. Did you hear yourself?'; };
+};
+
+document.getElementById('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText(logEl.textContent); statusEl.textContent = 'Results copied.'; }
+  catch (e) { statusEl.textContent = 'Copy failed. Screenshot the results instead.'; }
+};
+</script>
+</body>
+</html>
