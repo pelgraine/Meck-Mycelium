@@ -5,13 +5,26 @@ A (soon to be) feature-rich app for messaging on meshcore networks while maintin
 
 ## Voice messages
 
-Meck Mycelium lets you record a short voice message on your phone or computer and send it over a 2.4 GHz MeshCore network. Your phone does the recording and the audio squashing; your node just sends it. That means your node doesn't need a microphone, and it can run ordinary (stock) MeshCore firmware.
+Voice messages travel over 2.4 GHz MeshCore. Two kinds of device can send and play them.
 
-Voice messages are compatible with Meck Watch and Meck-P4, so people on those devices can hear yours and you can hear theirs.
+**Meck devices with 2.4 GHz radios: no phone needed**
+
+- Meck-P4 on the LR2021 T-Display P4, and Meck Watch on the SX1280 T-Watch S3, record, encode and play voice messages on the device itself.
+- Only these 2.4 GHz builds have voice. Other Meck-P4 and Meck Watch builds don't.
+
+**Any other 2.4 GHz node: use Meck Mycelium**
+
+- With other nodes, including ones running ordinary (stock) MeshCore firmware, Meck Mycelium does the work on your phone or computer.
+- It records your voice, squashes the audio, and hands it to your node to send. When a voice message arrives, it plays it for you.
+- Your node doesn't need a microphone or any special firmware.
+
+**They all work together**
+
+- Voice messages sent from Meck Mycelium can be heard on Meck-P4 and Meck Watch, and theirs can be heard in Meck Mycelium.
 
 There are two ways to send one:
 
-- **To the #meck-voice channel.** Everyone who has the #meck-voice channel hears it. It travels by flood, so repeaters pass it along and you don't need a direct route to anyone. This is the main way to use voice.
+- **To the #meck-voice channel.** Everyone who has the #meck-voice channel hears it. It travels by flood, so repeaters with the region au-nsw-voice added pass it along, and you don't need a direct route to anyone. Repeaters without that region don't carry it, so it doesn't go out all over the mesh. This is the main way to use voice.
 - **To one person (a voice DM).** Only that person gets it, but your node needs a direct path to them. See "Sending a voice message to one person" below.
 
 ### What you need
