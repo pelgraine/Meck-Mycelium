@@ -65,7 +65,7 @@ This table is based on MDN's browser support data (checked 13 November 2026). So
    - Go to the **Settings** tab and tap **Connect Device**.
    - Choose **Ble** (Bluetooth). Only choose **Usb** if your node is plugged into a computer or Android device with a cable.
    - Pick your node from the list. If you're asked for a PIN, enter your node's Bluetooth PIN.
-   - The chip at the top right changes to **Connected**.
+   - The chip at the top right changes to **Connected** once the contacts abd channels sync is complete.
 3. **Open the voice channel.** Go to the **Chats** tab and tap **#meck-voice**.
 4. **Add the channel if asked.** If the page says #meck-voice isn't on your node, tap **Add #meck-voice to this radio**. You only need to do this once per node.
 
