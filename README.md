@@ -42,7 +42,6 @@ There are two ways to send one:
 - Voice messages are tagged with a region called **au-nsw-voice**. A repeater only passes them on if au-nsw-voice is in its list of regions.
 - That has to be true of **every** repeater the message goes through, not just the one nearest you.
 - If you run a repeater and want it to carry voice, add the au-nsw-voice region to it.
-- You don't need to set any region on your own node. Mycelium tags each voice message for you.
 
 **A phone or computer with a browser that can talk to your node over Bluetooth**
 
