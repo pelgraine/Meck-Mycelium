@@ -69,6 +69,11 @@
                     </mdui-dropdown>
                 </mdui-top-app-bar>
             </div> 
+            <!-- Connection and sync progress (Connecting, Contacts 23 of 150, ...) -->
+            <div id="syncStatus" class="sync-status hidden">
+                <mdui-circular-progress class="sync-status-spinner"></mdui-circular-progress>
+                <span id="syncStatusText"></span>
+            </div>
             <!-- network_ping -->
             <div id="appContent" class="app-content"></div>
 

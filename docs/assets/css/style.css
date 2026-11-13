@@ -70,3 +70,19 @@ mdui-avatar {
     border-radius: none;
     box-shadow: none;
 }
+/* Connection and sync progress, under the title bar */
+.sync-status {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0 1rem 0.25rem;
+    min-height: 1.5rem;
+    color: rgb(var(--mdui-color-on-surface-variant));
+    font-size: var(--mdui-typescale-body-medium-size);
+}
+
+.sync-status-spinner {
+    width: 1rem;
+    height: 1rem;
+}

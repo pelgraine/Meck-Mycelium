@@ -1,0 +1,109 @@
+<route-settings
+    title="Channel"
+    backbutton="true"
+    navbar="false"
+    titlebar="true"
+></route-settings>
+
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .message-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column-reverse;
+    }
+
+    .message {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .contact-name {
+        font-size: large;
+        font-weight: 500;
+        color: rgb(var(--mdui-color-on-surface));
+    }
+
+    .message-timestamp {
+        flex: 0 1 auto;
+        white-space: nowrap;
+        color: rgb(var(--mdui-color-on-surface-variant));
+        font-size: var(--mdui-typescale-body-small-size);
+    }
+
+    .message-content {
+        color: rgb(var(--mdui-color-on-surface-variant));
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        font-size: var(--mdui-typescale-body-large-size);
+    }
+
+    .message-status {
+        color: rgb(var(--mdui-color-on-surface-variant));
+        font-size: var(--mdui-typescale-body-small-size);
+        margin-left: 0.5rem;
+    }
+
+    .channel-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .input-bar {
+        background: var(--mdui-color-background);
+        padding: 0.5rem;
+    }
+</style>
+
+<template id="messageTemplate">
+    <mdui-list-item alignment="start" class="message">
+        <mdui-avatar id="senderAvatar" slot="icon"></mdui-avatar>
+        <span id="senderName" class="contact-name"></span>
+        <span style="margin-left: 0.25rem;"></span>
+        <time-stamp id="messageTimeStamp" class="message-timestamp" type="datetime"></time-stamp>
+        <span id="messageStatus" class="message-status"></span>
+        <span id="messageContent" class="message-content" slot="description"></span>
+    </mdui-list-item>
+</template>
+
+<div class="chat-container">
+    <div class="channel-actions">
+        <mdui-button id="channelKeyButton" variant="text" icon="key">Key</mdui-button>
+        <mdui-button id="channelRemoveButton" variant="text" icon="delete">Remove</mdui-button>
+    </div>
+
+    <div class="message-list">
+        <mdui-list id="messageList" class="hidden"></mdui-list>
+    </div>
+
+    <div id="emptyMessage" class="pageNotice">
+        <span id="emptyTitle">No messages yet</span>
+        <span id="emptyText">Messages on this channel appear here.</span>
+    </div>
+
+    <div class="input-bar">
+        <mdui-text-field
+            id="messageTextField"
+            autosize
+            placeholder="Message the channel..."
+            counter
+            variant="outlined"
+        >
+            <mdui-button-icon id="sendButton" slot="end-icon" icon="send"></mdui-button-icon>
+        </mdui-text-field>
+    </div>
+</div>

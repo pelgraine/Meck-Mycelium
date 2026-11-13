@@ -3,15 +3,73 @@
     backbutton="false"
     navbar="true"
     titlebar="true"
->
+></route-settings>
 
-<mdui-list>
-    <mdui-list-item href="#voice" icon="mic" description="Voice messages to everyone on the channel, by flood">
-        #meck-voice
+<style>
+    .chats-page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .chats-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .chat-preview {
+        color: rgb(var(--mdui-color-on-surface-variant));
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .unread-count {
+        min-width: 1.5rem;
+        height: 1.5rem;
+        padding: 0 0.4rem;
+        border-radius: 0.75rem;
+        background: rgb(var(--mdui-color-primary));
+        color: rgb(var(--mdui-color-on-primary));
+        font-size: var(--mdui-typescale-label-medium-size);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chats-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding: 0.5rem 1rem;
+    }
+</style>
+
+<template id="channelItemTemplate">
+    <mdui-list-item id="channelItem">
+        <mdui-avatar id="channelAvatar" slot="icon"></mdui-avatar>
+        <span id="channelName"></span>
+        <span id="channelPreview" class="chat-preview" slot="description"></span>
+        <span id="channelUnread" class="unread-count hidden" slot="end-icon"></span>
     </mdui-list-item>
-</mdui-list>
+</template>
 
-<div id="emptyMessage" class="pageNotice">
-    <span>Not implemented</span>
-    <span>This feature will be added in a later update.</span>
+<div class="chats-page">
+    <div class="chats-list">
+        <mdui-list>
+            <mdui-list-item href="#voice" icon="mic" description="Voice messages to everyone on the channel, by flood">
+                #meck-voice
+            </mdui-list-item>
+        </mdui-list>
+
+        <mdui-list id="channelList"></mdui-list>
+
+        <div id="chatsNotice" class="pageNotice hidden">
+            <span id="chatsNoticeTitle"></span>
+            <span id="chatsNoticeText"></span>
+        </div>
+    </div>
+
+    <div class="chats-actions">
+        <mdui-button id="addChannelButton" variant="tonal" icon="add">Add channel</mdui-button>
+    </div>
 </div>
