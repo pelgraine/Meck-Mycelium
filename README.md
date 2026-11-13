@@ -36,6 +36,8 @@ There are two ways to send one:
 - Any node that runs MeshCore on 2.4 GHz.
 - Bluetooth companion firmware, version 1.18.0 or newer. Most people connect over Bluetooth, and it's the only way on an iPhone or iPad. (On a computer or Android device you can use the USB companion firmware and a cable instead, if you prefer.)
 - Set to the same 2.4 GHz radio settings as the voice mesh near you. Mycelium can't change radio settings, so set these first with the MeshCore app. If you're not sure what they are, ask your local mesh group.
+- Mycelium only sends voice messages from a node on 2.4 GHz. A voice message is many packets, which would crowd a sub-GHz mesh, so on a 915 MHz (or other sub-GHz) node the **microphone** button is greyed out.
+- Mycelium reads your node's frequency when it connects. If you change the frequency while connected, disconnect and connect again so Mycelium sees the change.
 
 **Repeaters that carry voice**
 
@@ -103,9 +105,11 @@ This only works if your node has a **direct path** to that person. If it doesn't
 | What you see | What it means |
 | --- | --- |
 | **Not connected to a radio** | Connect your node again from the **Settings** tab. |
+| **Voice messages need a 2.4 GHz radio** | Your node is on a sub-GHz frequency, such as 915 MHz. Voice messages can only be sent from a node on 2.4 GHz. |
 | **Add #voice to this radio first** | Tap **Add #voice to this radio** on the #voice page. |
 | **No free channel slot** | Your node's channel list is full. Remove a channel you don't use (for example in the MeshCore app), then add #voice. |
 | **Microphone not available** | Your browser isn't allowed to use the microphone. Allow it in your browser or phone settings, then try again. |
+| **Too short to keep**, and the level bar stayed empty while you were recording | No sound is reaching Mycelium from the microphone, even though the timer kept counting. On an iPhone or iPad, fully close Bluefy (swipe it away in the app switcher), open it again, and try recording. On other devices, close and reopen your browser. |
 | **No direct path to ...** | Your node can't reach that person directly. Use #voice instead. |
 | **Sent 3 of 4 packets** | Part of the message didn't go out, usually because the page was closed or the node disconnected. Send it again. |
 | **Nobody hears your messages** | Check your node is on the right 2.4 GHz radio settings, and that the repeaters between you carry the voice region. |

@@ -4,6 +4,7 @@ import { Router } from "../router.js";
 import { decodeNote, playPcm16k } from "../libs/voice_codec.js";
 import VoiceComposer from "../libs/voice_composer.js";
 import { VOICE_CHANNEL_NAME, VOICE_CHANNEL_STORE_KEY } from "../libs/voice_channel.js";
+import { voiceBandProblem } from "../libs/voice_band.js";
 
 // Decoded voice messages, keyed by record id, so each is decoded once per visit
 const decoded = new Map();
@@ -14,7 +15,9 @@ export default class Voice {
 
     static async init() {
         Router.setTitle(VOICE_CHANNEL_NAME);
-        this.composer = new VoiceComposer((c2) => this.send(c2));
+        this.composer = new VoiceComposer((c2) => this.send(c2), {
+            blockReason: () => voiceBandProblem(app.info),
+        });
 
         this._onChange = () => this.render();
         app.addEventListener("voicechannel", this._onChange);

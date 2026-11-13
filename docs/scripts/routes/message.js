@@ -7,6 +7,7 @@ import { parseVE3 } from "../libs/voice_receiver.js";
 import { directPathOf } from "../libs/voice_sender.js";
 import { directStatusText, heardDetails } from "../libs/delivery.js";
 import { showDetails } from "../libs/details_dialog.js";
+import { voiceBandProblem } from "../libs/voice_band.js";
 
 // Decoded voice messages, keyed by message record id, so each is decoded once per visit
 const decodedNotes = new Map();
@@ -178,7 +179,9 @@ export default class Contacts {
 
     static setupVoice(contact) {
         this.voiceContact = contact;
-        this.composer = new VoiceComposer((c2) => this.sendVoice(c2));
+        this.composer = new VoiceComposer((c2) => this.sendVoice(c2), {
+            blockReason: () => voiceBandProblem(app.info),
+        });
     }
 
     // Called by the composer's Send. Throws (keeping the recording) if it can't start.

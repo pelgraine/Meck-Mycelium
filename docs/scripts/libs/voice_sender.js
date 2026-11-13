@@ -17,6 +17,7 @@
 // =============================================================================
 
 import { splitPackets, durationSeconds } from "./voice_codec.js";
+import { assertVoiceBand, voiceBandProblem } from "./voice_band.js";
 
 export const VOICE_PKT_MAGIC = 0x56;
 export const VOICE_FETCH_MAGIC = 0x72;
@@ -59,9 +60,10 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default class VoiceSender {
 
-    constructor(getDevice, getContacts) {
+    constructor(getDevice, getContacts, getInfo = () => null) {
         this.getDevice = getDevice;       // () => current connection or null
         this.getContacts = getContacts;   // () => current contact list
+        this.getInfo = getInfo;           // () => the radio's self info (for its frequency)
         this.sessions = new Map();        // sessionId -> { packets, sentAt }
     }
 
@@ -86,6 +88,7 @@ export default class VoiceSender {
     async transmit(contact, note, onProgress = null) {
         const device = this.getDevice();
         if (!device) throw new Error("Not connected");
+        assertVoiceBand(this.getInfo());   // 2.4 GHz radios only
         const route = directPathOf(contact);
         if (!route) throw new Error("No direct path");
 
@@ -122,6 +125,10 @@ export default class VoiceSender {
             return true;
         }
         if (payload.length < 12) return true;
+        if (voiceBandProblem(this.getInfo())) {   // 2.4 GHz radios only
+            console.log("Voice: fetch not served, radio isn't on 2.4 GHz");
+            return true;
+        }
         const requesterPrefix = payload.slice(6, 12);
         const requester = (this.getContacts() || []).find(c =>
             requesterPrefix.every((b, i) => b === c.publicKey[i]));

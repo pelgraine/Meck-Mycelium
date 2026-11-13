@@ -19,6 +19,7 @@
 // =============================================================================
 
 import { splitPackets, durationSeconds, decodeNote, VOICE_MAX_BYTES, VOICE_MAX_PACKETS } from "./voice_codec.js";
+import { assertVoiceBand } from "./voice_band.js";
 
 export const VOICE_CHANNEL_NAME = "#voice";
 export const VOICE_REGION = "voice";
@@ -80,8 +81,9 @@ export function isChannelName(name) {
 
 export default class VoiceChannel {
 
-    constructor(getDevice) {
+    constructor(getDevice, getInfo = () => null) {
         this.getDevice = getDevice;           // () => current connection or null
+        this.getInfo = getInfo;               // () => the radio's self info (for its frequency)
         this.channelIdx = null;               // index of #voice on the radio, once known
         this.checkedIdx = new Map();          // channel index -> is it #voice
         this.sessions = new Map();            // incoming, by session id
@@ -176,6 +178,7 @@ export default class VoiceChannel {
     // Sends Codec2 data to #voice. onProgress({ sent, total }) after each
     // packet. Resolves with { sessionId, packets, total, sent, durationSec }.
     async send(c2, senderName, onProgress = null) {
+        assertVoiceBand(this.getInfo());   // 2.4 GHz radios only
         if (this.channelIdx == null) await this.findChannel();
         if (this.channelIdx < 0) throw new Error("No channel");
 
