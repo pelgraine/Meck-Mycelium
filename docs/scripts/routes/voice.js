@@ -8,7 +8,7 @@ import { VOICE_CHANNEL_NAME, VOICE_CHANNEL_STORE_KEY } from "../libs/voice_chann
 // Decoded voice messages, keyed by record id, so each is decoded once per visit
 const decoded = new Map();
 
-// The #meck-voice page: voice messages heard on the channel, and a recorder
+// The #voice page: voice messages heard on the channel, and a recorder
 // that sends to it.
 export default class Voice {
 
@@ -26,7 +26,7 @@ export default class Voice {
         await this.checkChannel();
     }
 
-    // Shows the "Add #meck-voice" button if the connected radio doesn't have the channel.
+    // Shows the "Add #voice" button if the connected radio doesn't have the channel.
     static async checkChannel() {
         const button = document.getElementById("addChannelButton");
         if (!button) return;

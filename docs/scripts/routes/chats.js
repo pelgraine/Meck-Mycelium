@@ -4,7 +4,7 @@ import { Router } from "../router.js";
 import { dialog, prompt, alert, snackbar } from "../libs/mdui/mdui.js";
 import { channelKey, channelKind, hashtagSecret, randomSecret, fromHex, toHex } from "../libs/channels.js";
 
-// The Chats tab: #meck-voice, then the radio's channels with their last
+// The Chats tab: #voice, then the radio's channels with their last
 // message and unread count, and a button to add a channel.
 export default class Chats {
 

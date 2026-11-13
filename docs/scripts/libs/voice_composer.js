@@ -1,6 +1,6 @@
 // =============================================================================
 // voice_composer.js -- the record / review controls shared by the DM chat and
-// the #meck-voice page: tap the mic to record (12 s at most), tap again to
+// the #voice page: tap the mic to record (12 s at most), tap again to
 // stop, then Play, Send or Discard.
 //
 // Expects these elements on the page: micButton, voiceBar, voiceStatus,

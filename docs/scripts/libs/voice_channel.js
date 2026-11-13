@@ -1,10 +1,10 @@
 // =============================================================================
-// voice_channel.js -- voice messages on the #meck-voice channel, in the format
+// voice_channel.js -- voice messages on the #voice channel, in the format
 // Meck Watch (WatchVoiceScreen.h / MyMesh.cpp) and Meck-P4 (MeckVoice.h /
 // meck_app.cpp) use:
 //
-//   channel data, data type 0xFF56, on the #meck-voice hashtag channel,
-//   flood-scoped to the au-nsw-voice region, so only repeaters that list it
+//   channel data, data type 0xFF56, on the #voice hashtag channel,
+//   flood-scoped to the voice region, so only repeaters that list it
 //   carry voice
 //
 //   'H' header  [0x56]['H'][sid:4 LE][total][dur s][sender name...]
@@ -20,10 +20,10 @@
 
 import { splitPackets, durationSeconds, decodeNote, VOICE_MAX_BYTES, VOICE_MAX_PACKETS } from "./voice_codec.js";
 
-export const VOICE_CHANNEL_NAME = "#meck-voice";
-export const VOICE_REGION = "au-nsw-voice";
+export const VOICE_CHANNEL_NAME = "#voice";
+export const VOICE_REGION = "voice";
 export const VOICE_DATA_TYPE = 0xFF56;
-export const VOICE_CHANNEL_STORE_KEY = "channel:#meck-voice"; // messages store "publicKey" for these
+export const VOICE_CHANNEL_STORE_KEY = "channel:#voice"; // messages store "publicKey" for these
 
 const PKT_MAGIC = 0x56;
 const MSG_HEADER = 0x48;   // 'H'
@@ -82,8 +82,8 @@ export default class VoiceChannel {
 
     constructor(getDevice) {
         this.getDevice = getDevice;           // () => current connection or null
-        this.channelIdx = null;               // index of #meck-voice on the radio, once known
-        this.checkedIdx = new Map();          // channel index -> is it #meck-voice
+        this.channelIdx = null;               // index of #voice on the radio, once known
+        this.checkedIdx = new Map();          // channel index -> is it #voice
         this.sessions = new Map();            // incoming, by session id
         this.onStarted = null;                // ({ sessionId, senderName, total })
         this.onProgress = null;               // ({ sessionId, received, total })
@@ -96,7 +96,7 @@ export default class VoiceChannel {
         this.checkedIdx.clear();
     }
 
-    // Is this channel #meck-voice? By name (with or without '#', any case),
+    // Is this channel #voice? By name (with or without '#', any case),
     // or by its key, in case the name was changed.
     async _isVoiceChannel(channel) {
         if (!channel) return false;
@@ -109,7 +109,7 @@ export default class VoiceChannel {
         return false;
     }
 
-    // Finds #meck-voice on the radio. Returns its index, or -1. What was read
+    // Finds #voice on the radio. Returns its index, or -1. What was read
     // is kept in this.lastScan ({ channels, maxChannels, failed }) for the page.
     async findChannel() {
         const device = this.getDevice();
@@ -140,7 +140,7 @@ export default class VoiceChannel {
         return found;
     }
 
-    // Adds #meck-voice in the first empty slot. Returns its index, or -1 if there is no room.
+    // Adds #voice in the first empty slot. Returns its index, or -1 if there is no room.
     async addChannel() {
         const device = this.getDevice();
         if (!device) return -1;
@@ -153,7 +153,7 @@ export default class VoiceChannel {
         return (this.channelIdx = empty.channelIdx);
     }
 
-    // Is this channel data a voice message on #meck-voice?
+    // Is this channel data a voice message on #voice?
     async isVoiceData(channelData) {
         if (!channelData || channelData.dataType !== VOICE_DATA_TYPE) return false;
         const idx = channelData.channelIdx;
@@ -175,7 +175,7 @@ export default class VoiceChannel {
 
     // ---- Sending ----
 
-    // Sends Codec2 data to #meck-voice. onProgress({ sent, total }) after each
+    // Sends Codec2 data to #voice. onProgress({ sent, total }) after each
     // packet. Resolves with { sessionId, packets, total, sent, durationSec }.
     async send(c2, senderName, onProgress = null) {
         if (this.channelIdx == null) await this.findChannel();

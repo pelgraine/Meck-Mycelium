@@ -26,7 +26,7 @@ or
 
 There are two ways to send one:
 
-- **To the #meck-voice channel.** Everyone who has the #meck-voice channel hears it. It travels by flood, so repeaters with the region au-nsw-voice added pass it along, and you don't need a direct route to anyone. Repeaters without that region don't carry it, so it doesn't go out all over the mesh. This is the main way to use voice.
+- **To the #voice channel.** Everyone who has the #voice channel hears it. It travels by flood, so repeaters with the region voice added pass it along, and you don't need a direct route to anyone. Repeaters without that region don't carry it, so it doesn't go out all over the mesh. This is the main way to use voice.
 - **To one person (a voice DM).** Only that person gets it, but your node needs a direct path to them. See "Sending a voice message to one person" below.
 
 ### What you need
@@ -39,9 +39,9 @@ There are two ways to send one:
 
 **Repeaters that carry voice**
 
-- Voice messages are tagged with a region called **au-nsw-voice**. A repeater only passes them on if au-nsw-voice is in its list of regions.
+- Voice messages are tagged with a region called **voice**. A repeater only passes them on if voice is in its list of regions.
 - That has to be true of **every** repeater the message goes through, not just the one nearest you.
-- If you run a repeater and want it to carry voice, add the au-nsw-voice region to it.
+- If you run a repeater and want it to carry voice, add the voice region to it.
 
 **A phone or computer with a browser that can talk to your node over Bluetooth**
 
@@ -66,12 +66,12 @@ This table is based on MDN's browser support data (checked 13 November 2026). So
    - Choose **Ble** (Bluetooth). Only choose **Usb** if your node is plugged into a computer or Android device with a cable.
    - Pick your node from the list. If you're asked for a PIN, enter your node's Bluetooth PIN.
    - The chip at the top right changes to **Connected** once the contacts abd channels sync is complete.
-3. **Open the voice channel.** Go to the **Chats** tab and tap **#meck-voice**.
-4. **Add the channel if asked.** If the page says #meck-voice isn't on your node, tap **Add #meck-voice to this radio**. You only need to do this once per node.
+3. **Open the voice channel.** Go to the **Chats** tab and tap **#voice**.
+4. **Add the channel if asked.** If the page says #voice isn't on your node, tap **Add #voice to this radio**. You only need to do this once per node.
 
-### Sending a voice message to #meck-voice
+### Sending a voice message to #voice
 
-1. On the **#meck-voice** page, tap the **microphone** button.
+1. On the **#voice** page, tap the **microphone** button.
 2. The first time, your browser asks to use the microphone. Tap **Allow**.
 3. Speak. You can record for up to 12 seconds. The bar shows your voice level, and recording stops by itself at 12 seconds.
 4. Tap the **stop** button when you've finished.
@@ -85,8 +85,8 @@ This table is based on MDN's browser support data (checked 13 November 2026). So
 
 ### Listening to voice messages
 
-- When a voice message arrives on #meck-voice, a pop-up tells you who it's from.
-- On the **#meck-voice** page, new messages are marked **new**. Tap one to play it.
+- When a voice message arrives on #voice, a pop-up tells you who it's from.
+- On the **#voice** page, new messages are marked **new**. Tap one to play it.
 - If some pieces of a message got lost on the way, you'll see something like "(3 of 4 packets)". It still plays, with silence where the missing part was.
 - Messages are saved in your browser, so you can play them again later.
 
@@ -96,19 +96,19 @@ This table is based on MDN's browser support data (checked 13 November 2026). So
 2. Tap the **microphone** button next to the message box.
 3. Record, then **Play**, **Send** or **Discard**, the same as above.
 
-This only works if your node has a **direct path** to that person. If it doesn't, you'll see "No direct path". When that happens, use #meck-voice instead.
+This only works if your node has a **direct path** to that person. If it doesn't, you'll see "No direct path". When that happens, use #voice instead.
 
 ### If something goes wrong
 
 | What you see | What it means |
 | --- | --- |
 | **Not connected to a radio** | Connect your node again from the **Settings** tab. |
-| **Add #meck-voice to this radio first** | Tap **Add #meck-voice to this radio** on the #meck-voice page. |
-| **No free channel slot** | Your node's channel list is full. Remove a channel you don't use (for example in the MeshCore app), then add #meck-voice. |
+| **Add #voice to this radio first** | Tap **Add #voice to this radio** on the #voice page. |
+| **No free channel slot** | Your node's channel list is full. Remove a channel you don't use (for example in the MeshCore app), then add #voice. |
 | **Microphone not available** | Your browser isn't allowed to use the microphone. Allow it in your browser or phone settings, then try again. |
-| **No direct path to ...** | Your node can't reach that person directly. Use #meck-voice instead. |
+| **No direct path to ...** | Your node can't reach that person directly. Use #voice instead. |
 | **Sent 3 of 4 packets** | Part of the message didn't go out, usually because the page was closed or the node disconnected. Send it again. |
-| **Nobody hears your messages** | Check your node is on the right 2.4 GHz radio settings, and that the repeaters between you carry the au-nsw-voice region. |
+| **Nobody hears your messages** | Check your node is on the right 2.4 GHz radio settings, and that the repeaters between you carry the voice region. |
 
 ## Todo
 *Alot of this is dependent on mycelium.js development*
