@@ -6,6 +6,8 @@
 // Expects these elements on the page: micButton, voiceBar, voiceStatus,
 // voicePlayButton, voiceSendButton, voiceDiscardButton, voiceLevel,
 // voiceLevelFill.
+//
+// Recording and sending are blocked when the radio isn't on 2.4 GHz.
 // =============================================================================
 
 import { VoiceRecorder, encodeRecording, decodeNote, splitPackets, playPcm16k, stopPlayback, getAudioContext, durationSeconds } from "./voice_codec.js";
@@ -14,8 +16,10 @@ export default class VoiceComposer {
 
     // onSend(c2) is called when Send is tapped; it does the sending and calls
     // this.status() as it goes. It should throw to keep the recording for a retry.
-    constructor(onSend) {
+    // blockReason() returns why voice can't be sent from this radio, or null.
+    constructor(onSend, { blockReason = () => null } = {}) {
         this.onSend = onSend;
+        this.blockReason = blockReason;
         this.recorder = null;
         this.c2 = null;
         this.preview = null;
@@ -42,6 +46,14 @@ export default class VoiceComposer {
             this.ui.mic.setAttribute("disabled", "");
             this.ui.mic.title = "This browser has no microphone access";
             return;
+        }
+
+        // Not a 2.4 GHz radio: grey out the record button and say why
+        const blocked = this.blockReason();
+        if (blocked) {
+            this.ui.mic.setAttribute("disabled", "");
+            this.ui.mic.title = blocked;
+            this.show(blocked);
         }
 
         this.ui.mic.addEventListener("click", () => this.toggleRecording());
@@ -78,6 +90,12 @@ export default class VoiceComposer {
         if (this.busy) return;
         if (this.recorder?.recording) {
             await this.stopRecording();
+            return;
+        }
+
+        const blocked = this.blockReason();
+        if (blocked) {
+            this.show(blocked);
             return;
         }
 
@@ -154,6 +172,11 @@ export default class VoiceComposer {
 
     async send() {
         if (!this.c2 || this.busy) return;
+        const blocked = this.blockReason();
+        if (blocked) {
+            this.show(blocked, { discard: true });
+            return;
+        }
         stopPlayback();
         this.busy = true;
         // Show straight away that the tap registered, and take the buttons

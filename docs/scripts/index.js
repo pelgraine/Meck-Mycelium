@@ -68,11 +68,12 @@ this.voiceRx = new VoiceReceiver();
 
         this.voiceTx = new VoiceSender(
             () => (this.isConnected ? this.device : null),
-            () => this.contacts
+            () => this.contacts,
+            () => this.info
         );
 
         // Voice messages on the #voice channel (Meck Watch / Meck-P4 format)
-        this.voiceChannel = new VoiceChannel(() => (this.isConnected ? this.device : null));
+        this.voiceChannel = new VoiceChannel(() => (this.isConnected ? this.device : null), () => this.info);
         this.voiceChannel.onReady = async ({ sessionId, senderName, durationSec, total, packets, startedAt }) => {
             const received = packets.filter(p => p).length;
             try {
