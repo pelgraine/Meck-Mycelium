@@ -5,14 +5,16 @@ A (soon to be) feature-rich app for messaging on meshcore networks while maintin
 
 ## Voice messages
 
-Voice messages travel over 2.4 GHz MeshCore. Two kinds of device can send and play them.
+Voice messages travel over 2.4 GHz MeshCore. Two kinds of device can send and play them. You can use either:
 
-**Meck devices with 2.4 GHz radios: no phone needed**
+**a) Meck devices with 2.4 GHz radios: no phone needed**
 
 - Meck-P4 on the LR2021 T-Display P4, and Meck Watch on the SX1280 T-Watch S3, record, encode and play voice messages on the device itself.
 - Only these 2.4 GHz builds have voice. Other Meck-P4 and Meck Watch builds don't.
 
-**Any other 2.4 GHz node: use Meck Mycelium**
+or
+
+**b) Any other 2.4 GHz node: use Meck Mycelium**
 
 - With other nodes, including ones running ordinary (stock) MeshCore firmware, Meck Mycelium does the work on your phone or computer.
 - It records your voice, squashes the audio, and hands it to your node to send. When a voice message arrives, it plays it for you.
