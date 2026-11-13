@@ -4,6 +4,7 @@ import { Router } from "./router.js";
 import { SimpleDB } from "./storage.js";
 import { CustomElements } from "./customElements.js";
 import VoiceReceiver from './libs/voice_receiver.js';
+import VoiceSender from './libs/voice_sender.js';
 
 class App extends EventTarget {
     constructor() {
@@ -41,13 +42,31 @@ this.voiceRx = new VoiceReceiver();
             console.log(`Voice: ${received}/${total} packets from ${senderName}`);
         };
 
-        this.voiceRx.onVoiceReady = ({ senderName, durationSec }) => {
+        this.voiceRx.onVoiceReady = async ({ senderName, durationSec, recordId, packets }) => {
             snackbar({
                 message: `Playing voice from ${senderName} (${durationSec}s)`,
                 autoCloseDelay: 3000,
                 closeOnOutsideClick: true
             });
+            // Keep the note's Codec2 data with its message, so it can be played after a reload
+            if (recordId != null) {
+                try {
+                    const record = await this.db.get("messages", recordId);
+                    if (record) {
+                        record.voice = { packets: packets, received: packets.filter(p => p).length };
+                        await this.db.put("messages", record);
+                        this.dispatchEvent(new CustomEvent("message"));
+                    }
+                } catch (e) {
+                    console.warn("Voice: could not save note", e);
+                }
+            }
         };
+
+        this.voiceTx = new VoiceSender(
+            () => (this.isConnected ? this.device : null),
+            () => this.contacts
+        );
 
         this.defineUserInterface();
         this.setupSettings();
@@ -172,7 +191,8 @@ this.voiceRx = new VoiceReceiver();
         this.device.on(Constants.PushCodes.MsgWaiting, () => this.handleMessage());
         this.device.on(Constants.PushCodes.SendConfirmed, () => this.handleMessageAck());
    this.device.on(Constants.PushCodes.RawData, (data) => {
-            this.voiceRx.onRawData(data.payload);
+            this.voiceRx.onRawData(data.payload);   // 0x56 voice packets
+            this.voiceTx.onRawData(data.payload);   // 0x72 fetch requests for notes we sent
         });
         // Meck: keep the contact list (and so each contact's path) current
         this.device.on(Constants.PushCodes.PathUpdated, () => this.refreshContacts());
@@ -243,7 +263,6 @@ this.voiceRx = new VoiceReceiver();
        try { CustomElements.radioOnly(); } catch(e) {}
 
         this.dispatchEvent(new CustomEvent("connected"));
-        this.voiceRx.loadCodec2Wasm('./scripts/libs/codec2/c2dec.js').catch(() => {});
     }
 
     async handleDisconnected() {
@@ -267,17 +286,18 @@ this.voiceRx = new VoiceReceiver();
             
             if (message.contactMessage) {
                 const contact = await this.device.findContactByPublicKeyPrefix(message.contactMessage.pubKeyPrefix);
-    
-                // Check for VE3 voice envelope
-                if (message.contactMessage.text && message.contactMessage.text.startsWith("VE3:")) {
-                    const senderName = contact?.advName || "Unknown";
-                    this.voiceRx.onVE3Envelope(senderName, message.contactMessage.text);
-                }
-                await this.db.add("messages", {
+
+                const recordId = await this.db.add("messages", {
                     publicKey: contact.publicKey,
                     message: message.contactMessage,
                     timestamp: Date.now()
                 });
+
+                // Check for VE3 voice envelope (after saving, so the note can be stored with its message)
+                if (message.contactMessage.text && message.contactMessage.text.startsWith("VE3:")) {
+                    const senderName = contact?.advName || "Unknown";
+                    this.voiceRx.onVE3Envelope(senderName, message.contactMessage.text, recordId);
+                }
             } else if (message.channelMessage) {
                 console.log(message);
             }
