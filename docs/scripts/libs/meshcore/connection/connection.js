@@ -2931,6 +2931,117 @@ class Connection extends EventEmitter {
         return this._meckRequest(() => this.sendCommandSendRawData(pathLen, path, rawData), Constants.ResponseCodes.Ok);
     }
 
+    // ---------------------------------------------------------------------
+    // Meck: reliable channel reading (after MeshCore Open's channel sync,
+    // github.com/zjs81/meshcore-open, MIT). getChannels() above stops at the
+    // first error reply from anything and takes whichever channel reply comes
+    // first. These ask for one slot at a time, accept only the reply for that
+    // slot, retry a slot that times out, and read as many slots as the node
+    // reports. Channel reads are queued so two callers never overlap.
+    // ---------------------------------------------------------------------
+
+    _withChannelLock(task) {
+        const run = (this._channelLock ?? Promise.resolve()).then(task, task);
+        this._channelLock = run.catch(() => {});
+        return run;
+    }
+
+    // Resolves with { channelIdx, name, secret }, or null if the node says
+    // there's no such slot. Rejects on timeout.
+    _readChannelSlot(channelIdx, timeoutMillis) {
+        return new Promise(async (resolve, reject) => {
+            let timer = null;
+            let notFoundTimer = null;
+            const cleanup = () => {
+                this.off(Constants.ResponseCodes.ChannelInfo, onInfo);
+                this.off(Constants.ResponseCodes.Err, onErr);
+                if (timer) clearTimeout(timer);
+                if (notFoundTimer) clearTimeout(notFoundTimer);
+            };
+            const onInfo = (info) => {
+                if (info.channelIdx !== channelIdx) return; // a reply to some other request
+                cleanup();
+                resolve(info);
+            };
+            const onErr = (err) => {
+                if (err?.errCode !== Constants.ErrorCodes.NotFound) return; // not about this slot
+                // It may be another request's error: give this slot's own reply
+                // a moment to arrive before taking it as "no such slot".
+                if (notFoundTimer) return;
+                notFoundTimer = setTimeout(() => {
+                    cleanup();
+                    resolve(null);
+                }, 400);
+            };
+            this.on(Constants.ResponseCodes.ChannelInfo, onInfo);
+            this.on(Constants.ResponseCodes.Err, onErr);
+            timer = setTimeout(() => {
+                cleanup();
+                reject({ timeout: true, channelIdx });
+            }, timeoutMillis);
+            try {
+                await this.sendCommandGetChannel(channelIdx);
+            } catch (e) {
+                cleanup();
+                reject(e);
+            }
+        });
+    }
+
+    async _readChannelSlotWithRetry(channelIdx, timeoutMillis = 3000, retries = 2) {
+        for (let attempt = 0; ; attempt++) {
+            try {
+                return await this._readChannelSlot(channelIdx, timeoutMillis);
+            } catch (e) {
+                if (!e?.timeout || attempt >= retries) throw e;
+            }
+        }
+    }
+
+    // One slot. Resolves with { channelIdx, name, secret } or null.
+    readChannel(channelIdx) {
+        return this._withChannelLock(() => this._readChannelSlotWithRetry(channelIdx));
+    }
+
+    // Every slot, empty ones included (name ""). maxChannels defaults to what
+    // the node reports in its device info. Resolves with
+    // { channels: [...], maxChannels, failed: [slot indexes that never answered] }.
+    readChannels(maxChannels = null) {
+        return this._withChannelLock(async () => {
+            if (maxChannels == null) {
+                try {
+                    const info = await this._meckRequest(() => this.sendCommandDeviceQuery(Constants.SupportedCompanionProtocolVersion), Constants.ResponseCodes.DeviceInfo, 5000);
+                    if (info.maxChannels > 0) maxChannels = info.maxChannels;
+                } catch (e) {
+                    // older firmware: fall back to reading until "not found"
+                }
+            }
+            const knownLimit = maxChannels != null;
+            const limit = maxChannels ?? 64;
+            const channels = [];
+            const failed = [];
+            for (let channelIdx = 0; channelIdx < limit; channelIdx++) {
+                let channel;
+                try {
+                    channel = await this._readChannelSlotWithRetry(channelIdx);
+                    // inside the reported slot count, "not found" may have been
+                    // another request's error: ask once more, and if it still
+                    // says so, note the slot and carry on rather than stopping
+                    if (channel === null && knownLimit) channel = await this._readChannelSlotWithRetry(channelIdx);
+                } catch (e) {
+                    failed.push(channelIdx);
+                    continue;
+                }
+                if (channel === null) {
+                    if (knownLimit) { failed.push(channelIdx); continue; }
+                    break; // no slot count from the node: "not found" means past the last slot
+                }
+                channels.push(channel);
+            }
+            return { channels, maxChannels: limit, failed };
+        });
+    }
+
 }
 
 export default Connection;

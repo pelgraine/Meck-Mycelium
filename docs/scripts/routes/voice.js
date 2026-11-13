@@ -37,9 +37,13 @@ export default class Voice {
         try {
             const idx = await app.voiceChannel.findChannel();
             button.classList.toggle("hidden", idx >= 0);
-            if (idx < 0) this.showNotice(`${VOICE_CHANNEL_NAME} isn't on this radio`, "Add it to send and hear voice messages on the channel.");
+            if (idx < 0) {
+                this.showNotice(`${VOICE_CHANNEL_NAME} isn't on this radio`,
+                    `Add it to send and hear voice messages on the channel. (${this.describeScan()})`);
+            }
         } catch (e) {
             console.warn("Voice channel: could not read channels", e);
+            this.showNotice("Couldn't read the radio's channels", `Check the radio is connected and try again. (${e?.message || "no reply"})`);
         }
     }
 
@@ -59,6 +63,16 @@ export default class Voice {
             this.showNotice("Couldn't add the channel", "Check the radio is connected and try again.");
         }
         button.removeAttribute("loading");
+    }
+
+    // What the last channel read found, for the notice: "Read 20 slots: Public, #sydney. No answer from slot 4."
+    static describeScan() {
+        const scan = app.voiceChannel.lastScan;
+        if (!scan) return "Channels not read";
+        const named = scan.channels.filter(c => c.name).map(c => c.name);
+        let text = `Read ${scan.channels.length} of ${scan.maxChannels} slots: ${named.length ? named.join(", ") : "all empty"}.`;
+        if (scan.failed.length) text += ` No answer from slot ${scan.failed.join(", ")}.`;
+        return text;
     }
 
     static showNotice(title, text) {
@@ -146,7 +160,7 @@ export default class Voice {
         }
         const idx = await app.voiceChannel.findChannel();
         if (idx < 0) {
-            composer.show(`Add ${VOICE_CHANNEL_NAME} to this radio first`);
+            composer.show(`Add ${VOICE_CHANNEL_NAME} to this radio first. ${this.describeScan()}`);
             document.getElementById("addChannelButton")?.classList.remove("hidden");
             throw new Error("No channel");
         }
