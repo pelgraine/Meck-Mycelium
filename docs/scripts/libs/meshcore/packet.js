@@ -1,5 +1,6 @@
 import BufferReader from "./buffer_reader.js";
 import Advert from "./advert.js";
+import MeshCorePath from "./meshcore_path.js";
 
 class Packet {
 
@@ -10,10 +11,10 @@ class Packet {
     static PH_VER_SHIFT = 6;
     static PH_VER_MASK = 0x03;   // 2-bits
 
-    static ROUTE_TYPE_RESERVED1 = 0x00;    // FUTURE
+    static ROUTE_TYPE_TRANSPORT_FLOOD = 0x00;    // flood mode + transport codes
     static ROUTE_TYPE_FLOOD = 0x01;    // flood mode, needs 'path' to be built up (max 64 bytes)
     static ROUTE_TYPE_DIRECT = 0x02;    // direct route, 'path' is supplied
-    static ROUTE_TYPE_RESERVED2 = 0x03;    // FUTURE
+    static ROUTE_TYPE_TRANSPORT_DIRECT = 0x03;    // direct route + transport codes
 
     static PAYLOAD_TYPE_REQ = 0x00;    // request (prefixed with dest/src hashes, MAC) (enc data: timestamp, blob)
     static PAYLOAD_TYPE_RESPONSE = 0x01;    // response to REQ or ANON_REQ (prefixed with dest/src hashes, MAC) (enc data: timestamp, blob)
@@ -27,12 +28,15 @@ class Packet {
     static PAYLOAD_TYPE_TRACE = 0x09;    // trace a path, collecting SNR for each hop
     static PAYLOAD_TYPE_RAW_CUSTOM = 0x0F;    // custom packet as raw bytes, for applications with custom encryption, payloads, etc
 
-    constructor(header, path, payload) {
+    constructor(header, pathLen, path, payload, transportCode1, transportCode2) {
 
 
         this.header = header;
+        this.pathLen = pathLen;
         this.path = path;
         this.payload = payload;
+        this.transportCode1 = transportCode1;
+        this.transportCode2 = transportCode2;
 
         // parsed info
         this.route_type = this.getRouteType();
@@ -45,12 +49,73 @@ class Packet {
     }
 
     static fromBytes(bytes) {
+
         const bufferReader = new BufferReader(bytes);
         const header = bufferReader.readByte();
-        const pathLen = bufferReader.readInt8();
-        const path = bufferReader.readBytes(pathLen);
+
+        // check if packet has transport codes
+        const routeType = header & Packet.PH_ROUTE_MASK;
+        const hasTransportCodes = routeType === Packet.ROUTE_TYPE_TRANSPORT_FLOOD || routeType === Packet.ROUTE_TYPE_TRANSPORT_DIRECT;
+
+        // parse transport codes
+        var transportCode1 = null;
+        var transportCode2 = null;
+        if(hasTransportCodes){
+            transportCode1 = bufferReader.readUInt16LE();
+            transportCode2 = bufferReader.readUInt16LE();
+        }
+
+        // parse path info
+        const pathLen = bufferReader.readUInt8();
+        const pathHashSize = Packet.extractPathHashSize(pathLen);
+        const pathHashCount = Packet.extractPathHashCount(pathLen);
+        const pathByteLength = pathHashCount * pathHashSize;
+
+        // get path and payload
+        const path = bufferReader.readBytes(pathByteLength);
         const payload = bufferReader.readRemainingBytes();
-        return new Packet(header, path, payload);
+
+        return new Packet(header, pathLen, path, payload, transportCode1, transportCode2);
+
+    }
+
+    static extractPathHashSize(pathLen) {
+        // 0 = 1-byte path hash size
+        // 1 = 2-byte path hash size
+        // 2 = 3-byte path hash size
+        // 3 = reserved
+        return (pathLen >> 6) + 1; // top 2-bits only
+    }
+
+    static extractPathHashCount(pathLen) {
+        return pathLen & 63; // bottom 6-bits only and a maximum of 63
+    }
+
+    static compactPathHashSizeAndCount(pathHashSize, pathHashCount) {
+        // path hash size stored in upper 2-bits of uint8_t
+        // path hash count stored in lower 6-bits of uint8_t
+        return ((pathHashSize - 1) << 6) | (pathHashCount & 63);
+    }
+
+    getPath() {
+        return MeshCorePath.fromPathAndLength(this.path, this.pathLen);
+    }
+
+    getPathHashSize() {
+        return Packet.extractPathHashSize(this.pathLen);
+    }
+
+    getPathHashCount() {
+        return Packet.extractPathHashCount(this.pathLen);
+    }
+
+    getPathHashes() {
+        const pathItems = [];
+        const pathBuffer = new BufferReader(this.path);
+        for(var i = 0; i < this.getPathHashCount(); i++){
+            pathItems.push(pathBuffer.readBytes(this.getPathHashSize()));
+        }
+        return pathItems;
     }
 
     getRouteType() {
@@ -61,6 +126,8 @@ class Packet {
         switch(this.getRouteType()){
             case Packet.ROUTE_TYPE_FLOOD: return "FLOOD";
             case Packet.ROUTE_TYPE_DIRECT: return "DIRECT";
+            case Packet.ROUTE_TYPE_TRANSPORT_FLOOD: return "TRANSPORT_FLOOD";
+            case Packet.ROUTE_TYPE_TRANSPORT_DIRECT: return "TRANSPORT_DIRECT";
             default: return null;
         }
     }

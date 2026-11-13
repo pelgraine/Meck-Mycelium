@@ -4,6 +4,8 @@ import { Router } from "./router.js";
 import { SimpleDB } from "./storage.js";
 import { CustomElements } from "./customElements.js";
 import VoiceReceiver from './libs/voice_receiver.js';
+import VoiceSender from './libs/voice_sender.js';
+import VoiceChannel, { VOICE_CHANNEL_NAME, VOICE_CHANNEL_STORE_KEY } from './libs/voice_channel.js';
 
 class App extends EventTarget {
     constructor() {
@@ -41,12 +43,51 @@ this.voiceRx = new VoiceReceiver();
             console.log(`Voice: ${received}/${total} packets from ${senderName}`);
         };
 
-        this.voiceRx.onVoiceReady = ({ senderName, durationSec }) => {
+        this.voiceRx.onVoiceReady = async ({ senderName, durationSec, recordId, packets }) => {
             snackbar({
                 message: `Playing voice from ${senderName} (${durationSec}s)`,
                 autoCloseDelay: 3000,
                 closeOnOutsideClick: true
             });
+            // Keep the note's Codec2 data with its message, so it can be played after a reload
+            if (recordId != null) {
+                try {
+                    const record = await this.db.get("messages", recordId);
+                    if (record) {
+                        record.voice = { packets: packets, received: packets.filter(p => p).length };
+                        await this.db.put("messages", record);
+                        this.dispatchEvent(new CustomEvent("message"));
+                    }
+                } catch (e) {
+                    console.warn("Voice: could not save note", e);
+                }
+            }
+        };
+
+        this.voiceTx = new VoiceSender(
+            () => (this.isConnected ? this.device : null),
+            () => this.contacts
+        );
+
+        // Voice messages on the #meck-voice channel (Meck Watch / Meck-P4 format)
+        this.voiceChannel = new VoiceChannel(() => (this.isConnected ? this.device : null));
+        this.voiceChannel.onReady = async ({ sessionId, senderName, durationSec, total, packets, startedAt }) => {
+            const received = packets.filter(p => p).length;
+            try {
+                await this.db.add("messages", {
+                    publicKey: VOICE_CHANNEL_STORE_KEY,
+                    channelVoice: { sessionId, senderName, durationSec, total, packets, received, outgoing: false, unread: true },
+                    timestamp: startedAt
+                });
+            } catch (e) {
+                console.warn("Voice channel: could not save message", e);
+            }
+            snackbar({
+                message: `Voice message from ${senderName || "someone"} on ${VOICE_CHANNEL_NAME}` + (received < total ? ` (${received} of ${total} packets)` : ""),
+                autoCloseDelay: 4000,
+                closeOnOutsideClick: true
+            });
+            this.dispatchEvent(new CustomEvent("voicechannel"));
         };
 
         this.defineUserInterface();
@@ -172,7 +213,17 @@ this.voiceRx = new VoiceReceiver();
         this.device.on(Constants.PushCodes.MsgWaiting, () => this.handleMessage());
         this.device.on(Constants.PushCodes.SendConfirmed, () => this.handleMessageAck());
    this.device.on(Constants.PushCodes.RawData, (data) => {
-            this.voiceRx.onRawData(data.payload);
+            this.voiceRx.onRawData(data.payload);   // 0x56 voice packets
+            this.voiceTx.onRawData(data.payload);   // 0x72 fetch requests for notes we sent
+        });
+        // Meck: keep the contact list (and so each contact's path) current
+        this.device.on(Constants.PushCodes.PathUpdated, () => this.refreshContacts());
+        this.device.on(Constants.PushCodes.ContactDeleted, () => this.refreshContacts());
+        this.device.on(Constants.PushCodes.ContactsFull, () => {
+            snackbar({
+                message: "The radio's contact list is full",
+                closeOnOutsideClick: true
+            });
         });
         // this.device.on(Constants.PushCodes.NewAdvert, () => this.handleContact()); // when companion is set to manually add contacts
     }
@@ -209,8 +260,19 @@ this.voiceRx = new VoiceReceiver();
 
     }
 
+    async refreshContacts() {
+        if (!this.isConnected || !this.device) return;
+        try {
+            this.contacts = await this.device.getContacts();
+            this.dispatchEvent(new CustomEvent("contacts"));
+        } catch (e) {
+            console.warn("Contact refresh failed", e);
+        }
+    }
+
     async handleConnected() {
         this.isConnected = true;
+        this.voiceChannel.resetRadio();
         this.info = await this.device.getSelfInfo();
         this.contacts = await this.device.getContacts();
 
@@ -224,11 +286,11 @@ this.voiceRx = new VoiceReceiver();
        try { CustomElements.radioOnly(); } catch(e) {}
 
         this.dispatchEvent(new CustomEvent("connected"));
-        this.voiceRx.loadCodec2Wasm('./scripts/libs/codec2/c2dec.js').catch(() => {});
     }
 
     async handleDisconnected() {
         this.isConnected = false;
+        this.voiceChannel.resetRadio();
         this.device = null;
 
         this.ui.radioIndercatorName.innerText = "Disconnected";
@@ -248,19 +310,25 @@ this.voiceRx = new VoiceReceiver();
             
             if (message.contactMessage) {
                 const contact = await this.device.findContactByPublicKeyPrefix(message.contactMessage.pubKeyPrefix);
-    
-                // Check for VE3 voice envelope
-                if (message.contactMessage.text && message.contactMessage.text.startsWith("VE3:")) {
-                    const senderName = contact?.advName || "Unknown";
-                    this.voiceRx.onVE3Envelope(senderName, message.contactMessage.text);
-                }
-                await this.db.add("messages", {
+
+                const recordId = await this.db.add("messages", {
                     publicKey: contact.publicKey,
                     message: message.contactMessage,
                     timestamp: Date.now()
                 });
+
+                // Check for VE3 voice envelope (after saving, so the note can be stored with its message)
+                if (message.contactMessage.text && message.contactMessage.text.startsWith("VE3:")) {
+                    const senderName = contact?.advName || "Unknown";
+                    this.voiceRx.onVE3Envelope(senderName, message.contactMessage.text, recordId);
+                }
             } else if (message.channelMessage) {
                 console.log(message);
+            } else if (message.channelData) {
+                // Meck: voice messages on #meck-voice arrive as channel data (type 0xFF56)
+                if (await this.voiceChannel.isVoiceData(message.channelData)) {
+                    this.voiceChannel.onChannelData(message.channelData.data);
+                }
             }
 
             this.dispatchEvent(new CustomEvent("message", message));
