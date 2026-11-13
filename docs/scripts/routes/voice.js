@@ -35,7 +35,9 @@ export default class Voice {
             return;
         }
         try {
-            const idx = await app.voiceChannel.findChannel();
+            // Already found when the radio connected: no need to read every slot again
+            const known = app.voiceChannel.channelIdx;
+            const idx = (known != null && known >= 0) ? known : await app.voiceChannel.findChannel();
             button.classList.toggle("hidden", idx >= 0);
             if (idx < 0) {
                 this.showNotice(`${VOICE_CHANNEL_NAME} isn't on this radio`,
@@ -158,7 +160,13 @@ export default class Voice {
             composer.show("Not connected to a radio");
             throw new Error("Not connected");
         }
-        const idx = await app.voiceChannel.findChannel();
+        // Use the slot found when the radio connected; only read the channels
+        // again (slow: every slot, one at a time) if that isn't known
+        let idx = app.voiceChannel.channelIdx;
+        if (idx == null || idx < 0) {
+            composer.show("Checking the radio's channels…");
+            idx = await app.voiceChannel.findChannel();
+        }
         if (idx < 0) {
             composer.show(`Add ${VOICE_CHANNEL_NAME} to this radio first. ${this.describeScan()}`);
             document.getElementById("addChannelButton")?.classList.remove("hidden");
