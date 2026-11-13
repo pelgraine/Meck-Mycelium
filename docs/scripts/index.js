@@ -174,6 +174,15 @@ this.voiceRx = new VoiceReceiver();
    this.device.on(Constants.PushCodes.RawData, (data) => {
             this.voiceRx.onRawData(data.payload);
         });
+        // Meck: keep the contact list (and so each contact's path) current
+        this.device.on(Constants.PushCodes.PathUpdated, () => this.refreshContacts());
+        this.device.on(Constants.PushCodes.ContactDeleted, () => this.refreshContacts());
+        this.device.on(Constants.PushCodes.ContactsFull, () => {
+            snackbar({
+                message: "The radio's contact list is full",
+                closeOnOutsideClick: true
+            });
+        });
         // this.device.on(Constants.PushCodes.NewAdvert, () => this.handleContact()); // when companion is set to manually add contacts
     }
 
@@ -207,6 +216,16 @@ this.voiceRx = new VoiceReceiver();
 
     async sendMessage() {
 
+    }
+
+    async refreshContacts() {
+        if (!this.isConnected || !this.device) return;
+        try {
+            this.contacts = await this.device.getContacts();
+            this.dispatchEvent(new CustomEvent("contacts"));
+        } catch (e) {
+            console.warn("Contact refresh failed", e);
+        }
     }
 
     async handleConnected() {

@@ -68,6 +68,29 @@ class Constants {
         GetStats: 56,
 
         SendChannelData: 62,
+
+        // Meck: commands handled by Meck (dev), Meck-P4 (main) and Meck Watch,
+        // not yet in upstream meshcore.js 1.15.0
+        HasConnection: 28,
+        Logout: 29,
+        GetContactByKey: 30,
+        SetDevicePin: 37,
+        GetCustomVars: 40,
+        SetCustomVar: 41,
+        GetAdvertPath: 42,
+        GetTuningParams: 43,
+        FactoryReset: 51,
+        SendPathDiscoveryReq: 52,
+        SendControlData: 55,
+        SendAnonReq: 57,
+        SetAutoAddConfig: 58,
+        GetAutoAddConfig: 59,
+        GetAllowedRepeatFreq: 60,
+        SetPathHashMode: 61,
+        SetDefaultFloodScope: 63,
+        GetDefaultFloodScope: 64,
+        SendRawPacket: 65,
+        RunCliCommand: 66,
     }
 
     static ResponseCodes = {
@@ -94,6 +117,15 @@ class Constants {
         Signature: 20,
         Stats: 24,
         ChannelDataRecv: 27,
+
+        // Meck: replies to the commands added above
+        CustomVars: 21,
+        AdvertPath: 22,
+        TuningParams: 23,
+        AutoAddConfig: 25,
+        AllowedRepeatFreq: 26,
+        DefaultFloodScope: 28,
+        CliReply: 29,
     }
 
     static PushCodes = {
@@ -111,6 +143,11 @@ class Constants {
         TelemetryResponse: 0x8B,
         BinaryResponse: 0x8C,
         ControlData: 0x8E,
+
+        // Meck: pushes sent by Meck, Meck-P4 and Meck Watch
+        PathDiscoveryResponse: 0x8D,
+        ContactDeleted: 0x8F, // a contact was overwritten to make room
+        ContactsFull: 0x90,
     }
 
     static ErrorCodes = {
@@ -138,6 +175,7 @@ class Constants {
         Plain: 0,
         CliData: 1,
         SignedPlain: 2,
+        CliCommand: 3, // Meck: TXT_TYPE_CLI_COMMAND, "a CLI command (explicitly)"
     }
 
     static BinaryRequestTypes = {
