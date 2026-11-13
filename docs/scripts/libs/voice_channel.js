@@ -96,12 +96,10 @@ export default class VoiceChannel {
         this.checkedIdx.clear();
     }
 
-    // Is this channel #voice? By name (with or without '#', any case),
-    // or by its key, in case the name was changed.
+    // Is this channel the public #voice hashtag channel? By its key only, so a
+    // private channel that happens to be called "Voice" isn't taken for it.
     async _isVoiceChannel(channel) {
         if (!channel) return false;
-        const name = (channel.name || "").toLowerCase();
-        if (name === VOICE_CHANNEL_NAME || name === VOICE_CHANNEL_NAME.slice(1)) return true;
         if (channel.secret && channel.secret.length === 16) {
             const secret = await channelSecret();
             return secret.every((b, i) => b === channel.secret[i]);
