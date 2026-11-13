@@ -109,6 +109,7 @@ This only works if your node has a **direct path** to that person. If it doesn't
 | **Add #voice to this radio first** | Tap **Add #voice to this radio** on the #voice page. |
 | **No free channel slot** | Your node's channel list is full. Remove a channel you don't use (for example in the MeshCore app), then add #voice. |
 | **Microphone not available** | Your browser isn't allowed to use the microphone. Allow it in your browser or phone settings, then try again. |
+| **Too short to keep**, and the level bar stayed empty while you were recording | No sound is reaching Mycelium from the microphone, even though the timer kept counting. On an iPhone or iPad, fully close Bluefy (swipe it away in the app switcher), open it again, and try recording. On other devices, close and reopen your browser. |
 | **No direct path to ...** | Your node can't reach that person directly. Use #voice instead. |
 | **Sent 3 of 4 packets** | Part of the message didn't go out, usually because the page was closed or the node disconnected. Send it again. |
 | **Nobody hears your messages** | Check your node is on the right 2.4 GHz radio settings, and that the repeaters between you carry the voice region. |
