@@ -96,24 +96,45 @@ export default class VoiceChannel {
         this.checkedIdx.clear();
     }
 
-    // Finds #meck-voice on the radio. Returns its index, or -1.
+    // Is this channel #meck-voice? By name (with or without '#', any case),
+    // or by its key, in case the name was changed.
+    async _isVoiceChannel(channel) {
+        if (!channel) return false;
+        const name = (channel.name || "").toLowerCase();
+        if (name === VOICE_CHANNEL_NAME || name === VOICE_CHANNEL_NAME.slice(1)) return true;
+        if (channel.secret && channel.secret.length === 16) {
+            const secret = await channelSecret();
+            return secret.every((b, i) => b === channel.secret[i]);
+        }
+        return false;
+    }
+
+    // Finds #meck-voice on the radio. Returns its index, or -1. What was read
+    // is kept in this.lastScan ({ channels, maxChannels, failed }) for the page.
     async findChannel() {
         const device = this.getDevice();
         if (!device) return -1;
-        const channels = await device.getChannels();
-        const found = channels.find(c => isChannelName(c.name));
-        this.channelIdx = found ? found.channelIdx : -1;
-        return this.channelIdx;
+        const scan = await device.readChannels();
+        this.lastScan = scan;
+        let found = -1;
+        for (const channel of scan.channels) {
+            if (await this._isVoiceChannel(channel)) { found = channel.channelIdx; break; }
+        }
+        this.channelIdx = found;
+        console.log(`Voice channel: read ${scan.channels.length} of ${scan.maxChannels} slots` +
+            (scan.failed.length ? `, no answer from ${scan.failed.join(", ")}` : "") +
+            `; ${VOICE_CHANNEL_NAME} ${found >= 0 ? "at " + found : "not found"}`,
+            scan.channels.map(c => `${c.channelIdx}:${c.name}`));
+        return found;
     }
 
     // Adds #meck-voice in the first empty slot. Returns its index, or -1 if there is no room.
     async addChannel() {
         const device = this.getDevice();
         if (!device) return -1;
-        const channels = await device.getChannels();
-        const existing = channels.find(c => isChannelName(c.name));
-        if (existing) return (this.channelIdx = existing.channelIdx);
-        const empty = channels.find(c => !c.name);
+        const existing = await this.findChannel();
+        if (existing >= 0) return existing;
+        const empty = (this.lastScan?.channels || []).find(c => !c.name);
         if (!empty) return -1;
         await device.setChannel(empty.channelIdx, VOICE_CHANNEL_NAME, await channelSecret());
         this.checkedIdx.set(empty.channelIdx, true);
@@ -129,9 +150,10 @@ export default class VoiceChannel {
             const device = this.getDevice();
             if (!device) return false;
             try {
-                const channel = await device.getChannel(idx);
-                this.checkedIdx.set(idx, isChannelName(channel.name));
-                if (isChannelName(channel.name)) this.channelIdx = idx;
+                const channel = await device.readChannel(idx);
+                const isVoice = await this._isVoiceChannel(channel);
+                this.checkedIdx.set(idx, isVoice);
+                if (isVoice) this.channelIdx = idx;
             } catch (e) {
                 return false;
             }
