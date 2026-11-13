@@ -5,6 +5,8 @@ import { decodeNote, playPcm16k } from "../libs/voice_codec.js";
 import VoiceComposer from "../libs/voice_composer.js";
 import { parseVE3 } from "../libs/voice_receiver.js";
 import { directPathOf } from "../libs/voice_sender.js";
+import { directStatusText, heardDetails } from "../libs/delivery.js";
+import { showDetails } from "../libs/details_dialog.js";
 
 // Decoded voice messages, keyed by message record id, so each is decoded once per visit
 const decodedNotes = new Map();
@@ -58,6 +60,15 @@ export default class Contacts {
                 this.renderVoiceMessage(msgSpan, message, envelope, isSelf);
             } else {
                 messageItem.getElementById("messageContent").innerText = message.message.text;
+            }
+
+            if (isSelf && message.delivery) {
+                const status = messageItem.getElementById("messageStatus");
+                status.textContent = directStatusText(message.delivery);
+                if (!["sending", "failed"].includes(message.delivery.status)) {
+                    status.classList.add("tappable");
+                    status.addEventListener("click", () => showDetails("Delivery", this.deliveryDetails(message.delivery)));
+                }
             }
 
             newItems.push(messageItem);
@@ -114,7 +125,7 @@ export default class Contacts {
 
         messageTextFeild.value = "";
 
-        await app.db.add("messages", {
+        const record = {
             publicKey: contact.publicKey,
             message: {
                 pathLen: 0,
@@ -123,13 +134,42 @@ export default class Contacts {
                 text: message,
                 txtType: 0
             },
-            timestamp: Date.now()
-        });
+            timestamp: Date.now(),
+            delivery: { status: "sending" }
+        };
+        record.id = await app.db.add("messages", record);
+        this.renderMessages(contact);
 
-        await app.device.sendTextMessage(contact.publicKey, message);
+        let sent;
+        try {
+            sent = await app.device.sendTextMessage(contact.publicKey, message);
+        } catch (e) {
+            console.warn("Message: send failed", e);
+            record.delivery = { status: "failed" };
+            await app.db.put("messages", record);
+            this.renderMessages(contact);
+            return;
+        }
 
         console.log(message);
-        this.renderMessages(contact);
+        // Waits for the recipient's confirmation, and counts repeaters passing it on
+        app.delivery.trackDirectSend({ recordId: record.id, contactKey: contact.publicKey, selfKey: app.info.publicKey, sent });
+    }
+
+    static deliveryDetails(delivery) {
+        const lines = [];
+        if (delivery.status === "delivered") {
+            lines.push("Delivered: the recipient's radio confirmed it" +
+                (delivery.roundTrip != null ? `, ${(delivery.roundTrip / 1000).toFixed(1)} s after sending.` : "."));
+        } else if (delivery.status === "unconfirmed") {
+            lines.push("Not confirmed: no confirmation came back from the recipient's radio in the expected time. It may still have arrived.");
+        } else {
+            lines.push("Sent. Waiting for the recipient's radio to confirm it.");
+        }
+        lines.push("");
+        if (delivery.isFlood) lines.push(heardDetails(delivery.heard, app.contacts));
+        else lines.push("Sent along a known path, so repeats aren't counted.");
+        return lines.join("\n");
     }
 
     // =========================================================================

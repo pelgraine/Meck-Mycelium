@@ -3,6 +3,8 @@ import { Helpers } from "../libs/helpers.js";
 import { Router } from "../router.js";
 import { confirm, alert, snackbar } from "../libs/mdui/mdui.js";
 import { channelKey, maxChannelTextBytes, utf8Length, fromHex, toHex } from "../libs/channels.js";
+import { channelStatusText, heardDetails } from "../libs/delivery.js";
+import { showDetails } from "../libs/details_dialog.js";
 
 // One channel's chat: its messages, and a box to send to it.
 export default class Channel {
@@ -89,9 +91,13 @@ export default class Channel {
             item.getElementById("messageTimeStamp").value = new Date(record.timestamp);
             item.getElementById("messageContent").innerText = message.text;
             const status = item.getElementById("messageStatus");
-            if (message.outgoing && message.status === "sending") status.textContent = "Sending…";
-            else if (message.outgoing && message.status === "failed") status.textContent = "Not sent";
-            else if (!message.outgoing && message.pathLen != null) {
+            if (message.outgoing) {
+                status.textContent = channelStatusText(message);
+                if (message.status === "sent") {
+                    status.classList.add("tappable");
+                    status.addEventListener("click", () => showDetails("Repeats", heardDetails(message.heard, app.contacts)));
+                }
+            } else if (message.pathLen != null) {
                 status.textContent = message.pathLen === 0xFF ? "direct" : `${message.pathLen & 63} hops`;
             }
             items.push(item);
@@ -132,15 +138,22 @@ export default class Channel {
         record.id = await app.db.add("messages", record);
         await this.render();
 
+        let sentTimestamp = null;
         try {
-            await app.device.sendChannelTextMessage(channel.channelIdx, text);
+            const result = await app.device.sendChannelTextMessage(channel.channelIdx, text);
             record.channelMessage.status = "sent";
+            sentTimestamp = result?.senderTimestamp ?? null;
+            if (sentTimestamp != null) record.channelMessage.senderTimestamp = sentTimestamp;
         } catch (e) {
             console.warn("Channels: send failed", e);
             record.channelMessage.status = "failed";
         }
         await app.db.put("messages", record);
         app.dispatchEvent(new CustomEvent("channelmessage", { detail: { key: this.key } }));
+        // Count repeaters passing it on
+        if (sentTimestamp != null) {
+            await app.delivery.trackChannelSend({ recordId: record.id, storeKey: this.key, secret: channel.secret, timestamp: sentTimestamp, text });
+        }
     }
 
     static showKey() {

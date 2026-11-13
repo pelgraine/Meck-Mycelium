@@ -1401,15 +1401,18 @@ class Connection extends EventEmitter {
         });
     }
 
+    // Resolves with { senderTimestamp }, the timestamp the radio puts in the packet.
     sendChannelTextMessage(channelIdx, text) {
         return new Promise(async (resolve, reject) => {
             try {
+
+                const senderTimestamp = Math.floor(Date.now() / 1000);
 
                 // resolve promise when we receive ok
                 const onOk = () => {
                     this.off(Constants.ResponseCodes.Ok, onOk);
                     this.off(Constants.ResponseCodes.Err, onErr);
-                    resolve();
+                    resolve({ senderTimestamp });
                 }
 
                 // reject promise when we receive err
@@ -1425,7 +1428,6 @@ class Connection extends EventEmitter {
 
                 // compose message
                 const txtType = Constants.TxtTypes.Plain;
-                const senderTimestamp = Math.floor(Date.now() / 1000);
 
                 // send message
                 await this.sendCommandSendChannelTxtMsg(txtType, channelIdx, senderTimestamp, text);
