@@ -3006,7 +3006,8 @@ class Connection extends EventEmitter {
     // Every slot, empty ones included (name ""). maxChannels defaults to what
     // the node reports in its device info. Resolves with
     // { channels: [...], maxChannels, failed: [slot indexes that never answered] }.
-    readChannels(maxChannels = null) {
+    // onProgress(read, total) is called after each slot.
+    readChannels(maxChannels = null, onProgress = null) {
         return this._withChannelLock(async () => {
             if (maxChannels == null) {
                 try {
@@ -3030,13 +3031,15 @@ class Connection extends EventEmitter {
                     if (channel === null && knownLimit) channel = await this._readChannelSlotWithRetry(channelIdx);
                 } catch (e) {
                     failed.push(channelIdx);
+                    if (onProgress) onProgress(channelIdx + 1, limit);
                     continue;
                 }
                 if (channel === null) {
-                    if (knownLimit) { failed.push(channelIdx); continue; }
+                    if (knownLimit) { failed.push(channelIdx); if (onProgress) onProgress(channelIdx + 1, limit); continue; }
                     break; // no slot count from the node: "not found" means past the last slot
                 }
                 channels.push(channel);
+                if (onProgress) onProgress(channelIdx + 1, limit);
             }
             return { channels, maxChannels: limit, failed };
         });

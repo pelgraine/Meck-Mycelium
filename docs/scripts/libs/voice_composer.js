@@ -156,6 +156,9 @@ export default class VoiceComposer {
         if (!this.c2 || this.busy) return;
         stopPlayback();
         this.busy = true;
+        // Show straight away that the tap registered, and take the buttons
+        // away so they can't be tapped again while it starts
+        this.show("Sending…");
         const c2 = this.c2;
         try {
             await this.onSend(c2);

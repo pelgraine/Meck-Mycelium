@@ -128,6 +128,18 @@ export default class VoiceChannel {
         return found;
     }
 
+    // Takes a channel read done elsewhere (at connect) instead of reading again.
+    async useScan(scan) {
+        this.lastScan = scan;
+        let found = -1;
+        for (const channel of scan.channels) {
+            if (await this._isVoiceChannel(channel)) { found = channel.channelIdx; break; }
+        }
+        this.channelIdx = found;
+        for (const channel of scan.channels) this.checkedIdx.set(channel.channelIdx, channel.channelIdx === found);
+        return found;
+    }
+
     // Adds #meck-voice in the first empty slot. Returns its index, or -1 if there is no room.
     async addChannel() {
         const device = this.getDevice();
