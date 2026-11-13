@@ -70,7 +70,7 @@ this.voiceRx = new VoiceReceiver();
             () => this.contacts
         );
 
-        // Voice messages on the #meck-voice channel (Meck Watch / Meck-P4 format)
+        // Voice messages on the #voice channel (Meck Watch / Meck-P4 format)
         this.voiceChannel = new VoiceChannel(() => (this.isConnected ? this.device : null));
         this.voiceChannel.onReady = async ({ sessionId, senderName, durationSec, total, packets, startedAt }) => {
             const received = packets.filter(p => p).length;
@@ -438,7 +438,7 @@ this.voiceRx = new VoiceReceiver();
         } else if (message.channelMessage) {
             await this.saveChannelMessage(message.channelMessage);
         } else if (message.channelData) {
-            // Meck: voice messages on #meck-voice arrive as channel data (type 0xFF56)
+            // Meck: voice messages on #voice arrive as channel data (type 0xFF56)
             if (await this.voiceChannel.isVoiceData(message.channelData)) {
                 this.voiceChannel.onChannelData(message.channelData.data);
             }
