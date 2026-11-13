@@ -110,8 +110,8 @@ class Connection extends EventEmitter {
         data.writeBytes(outPath); // 64 bytes
         data.writeCString(advName, 32); // 32 bytes
         data.writeUInt32LE(lastAdvert);
-        data.writeUInt32LE(advLat);
-        data.writeUInt32LE(advLon);
+        data.writeInt32LE(advLat);
+        data.writeInt32LE(advLon);
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -218,10 +218,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
-    async sendCommandSendRawData(path, rawData) {
+    async sendCommandSendRawData(pathLen, path, rawData) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendRawData);
-        data.writeByte(path.length);
+        data.writeByte(pathLen);
         data.writeBytes(path);
         data.writeBytes(rawData);
         await this.sendToRadioFrame(data.toBytes());
@@ -257,6 +257,32 @@ class Connection extends EventEmitter {
         data.writeByte(Constants.CommandCodes.SendBinaryReq);
         data.writeBytes(publicKey); // 32 bytes - public key of contact to send request to
         data.writeBytes(requestCodeAndParams);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSetFloodScope(transportKey) {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetFloodScope);
+        data.writeByte(0); // not documented, protocol version 8 checks if it's zero, else returns ERR_CODE_UNSUPPORTED_CMD
+        data.writeBytes(transportKey);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandGetStats(statsType) {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.GetStats);
+        data.writeByte(statsType);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSendChannelData(channelIdx, pathLen, path, dataType, payload) {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SendChannelData);
+        data.writeByte(channelIdx);
+        data.writeByte(pathLen);
+        data.writeBytes(path);
+        data.writeUInt16LE(dataType);
+        data.writeBytes(payload);
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -331,9 +357,9 @@ class Connection extends EventEmitter {
         } else if(responseCode === Constants.ResponseCodes.NoMoreMessages){
             this.onNoMoreMessagesResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ContactMsgRecv){
-            this.onContactMsgRecvResponse(bufferReader);
+            this.onContactMsgRecvResponse(bufferReader, false);
         } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv){
-            this.onChannelMsgRecvResponse(bufferReader);
+            this.onChannelMsgRecvResponse(bufferReader, false);
         } else if(responseCode === Constants.ResponseCodes.ContactsStart){
             this.onContactsStartResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Contact){
@@ -352,12 +378,20 @@ class Connection extends EventEmitter {
             this.onPrivateKeyResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Disabled){
             this.onDisabledResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecvV3){
+            this.onContactMsgRecvResponse(bufferReader, true);
+        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecvV3){
+            this.onChannelMsgRecvResponse(bufferReader, true);
         } else if(responseCode === Constants.ResponseCodes.ChannelInfo){
             this.onChannelInfoResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.SignStart){
             this.onSignStartResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Signature){
             this.onSignatureResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.Stats){
+            this.onStatsResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ChannelDataRecv){
+            this.onChannelDataRecvResponse(bufferReader);
         } else if(responseCode === Constants.PushCodes.Advert){
             this.onAdvertPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.PathUpdated){
@@ -382,6 +416,8 @@ class Connection extends EventEmitter {
             this.onNewAdvertPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.BinaryResponse){
             this.onBinaryResponsePush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.ControlData){
+            this.onControlDataPush(bufferReader);
         } else {
             console.log(`unhandled frame: code=${responseCode}`, frame);
         }
@@ -461,6 +497,20 @@ class Connection extends EventEmitter {
         });
     }
 
+    onControlDataPush(bufferReader) {
+        const lastSnr = bufferReader.readInt8() / 4;
+        const lastRssi = bufferReader.readInt8();
+        const pathLen = bufferReader.readUInt8();
+        const payload = bufferReader.readRemainingBytes();
+
+        this.emit(Constants.PushCodes.ControlData, {
+            lastSnr: lastSnr,
+            lastRssi: lastRssi,
+            pathLen: pathLen,
+            payload: payload,
+        });
+    }
+
     onTraceDataPush(bufferReader) {
         const reserved = bufferReader.readByte();
         const pathLen = bufferReader.readUInt8();
@@ -485,8 +535,8 @@ class Connection extends EventEmitter {
             outPath: bufferReader.readBytes(64),
             advName: bufferReader.readCString(32),
             lastAdvert: bufferReader.readUInt32LE(),
-            advLat: bufferReader.readUInt32LE(),
-            advLon: bufferReader.readUInt32LE(),
+            advLat: bufferReader.readInt32LE(),
+            advLon: bufferReader.readInt32LE(),
             lastMod: bufferReader.readUInt32LE(),
         });
     }
@@ -519,8 +569,8 @@ class Connection extends EventEmitter {
             outPath: bufferReader.readBytes(64),
             advName: bufferReader.readCString(32),
             lastAdvert: bufferReader.readUInt32LE(),
-            advLat: bufferReader.readUInt32LE(),
-            advLon: bufferReader.readUInt32LE(),
+            advLat: bufferReader.readInt32LE(),
+            advLon: bufferReader.readInt32LE(),
             lastMod: bufferReader.readUInt32LE(),
         });
     }
@@ -604,6 +654,69 @@ class Connection extends EventEmitter {
         });
     }
 
+    onStatsResponse(bufferReader) {
+
+        const type = bufferReader.readUInt8();
+        const raw = bufferReader.readRemainingBytes();
+        const rawBufferReader = new BufferReader(raw);
+
+        var data = {};
+        if(type === Constants.StatsTypes.Core){
+            data = {
+                batteryMilliVolts: rawBufferReader.readUInt16LE(),
+                uptimeSecs: rawBufferReader.readUInt32LE(),
+                errors: rawBufferReader.readUInt16LE(),
+                queueLen: rawBufferReader.readUInt8(),
+            };
+        } else if(type === Constants.StatsTypes.Radio){
+            data = {
+                noiseFloor: rawBufferReader.readInt16LE(),
+                lastRssi: rawBufferReader.readInt8(),
+                lastSnr: rawBufferReader.readInt8() / 4,
+                txAirSecs: rawBufferReader.readUInt32LE(),
+                rxAirSecs: rawBufferReader.readUInt32LE(),
+            };
+        } else if(type === Constants.StatsTypes.Packets){
+            data = {
+                recv: rawBufferReader.readUInt32LE(),
+                sent: rawBufferReader.readUInt32LE(),
+                nSentFlood: rawBufferReader.readUInt32LE(),
+                nSentDirect: rawBufferReader.readUInt32LE(),
+                nRecvFlood: rawBufferReader.readUInt32LE(),
+                nRecvDirect: rawBufferReader.readUInt32LE(),
+                nRecvErrors: rawBufferReader.getRemainingBytesCount() >= 4 ? rawBufferReader.readUInt32LE() : null,
+            };
+        }
+
+        this.emit(Constants.ResponseCodes.Stats, {
+            type: type,
+            raw: raw,
+            data: data,
+        });
+
+    }
+
+    onChannelDataRecvResponse(bufferReader) {
+        const snr = bufferReader.readInt8() / 4;
+        const reserved1 = bufferReader.readByte();
+        const reserved2 = bufferReader.readByte();
+        const channelIdx = bufferReader.readInt8();
+        const pathLen = bufferReader.readByte(); // 0xFF if was sent direct, otherwise path_len for flood-mode
+        const dataType = bufferReader.readUInt16LE();
+        const dataLen = bufferReader.readUInt8();
+        const data = bufferReader.readBytes(dataLen);
+        this.emit(Constants.ResponseCodes.ChannelDataRecv, {
+            snr: snr,
+            reserved1: reserved1,
+            reserved2: reserved2,
+            channelIdx: channelIdx,
+            pathLen: pathLen,
+            dataType: dataType,
+            dataLen: dataLen,
+            data: data,
+        });
+    }
+
     onSelfInfoResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.SelfInfo, {
             type: bufferReader.readByte(),
@@ -634,24 +747,46 @@ class Connection extends EventEmitter {
         });
     }
 
-    onContactMsgRecvResponse(bufferReader) {
+    onContactMsgRecvResponse(bufferReader, isV3) {
+
+        // read snr from ContactMsgRecvV3
+        var snr = null;
+        if(isV3){
+            snr = bufferReader.readInt8() / 4;
+            var reserved1 = bufferReader.readByte();
+            var reserved2 = bufferReader.readByte();
+        }
+
         this.emit(Constants.ResponseCodes.ContactMsgRecv, {
             pubKeyPrefix: bufferReader.readBytes(6),
             pathLen: bufferReader.readByte(),
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
+            snr: snr,
         });
+
     }
 
-    onChannelMsgRecvResponse(bufferReader) {
+    onChannelMsgRecvResponse(bufferReader, isV3) {
+
+        // read snr from ChannelMsgRecvV3
+        var snr = null;
+        if(isV3){
+            snr = bufferReader.readInt8() / 4;
+            var reserved1 = bufferReader.readByte();
+            var reserved2 = bufferReader.readByte();
+        }
+
         this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
             channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
             pathLen: bufferReader.readByte(), // 0xFF if was sent direct, otherwise hop count for flood-mode
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
+            snr: snr,
         });
+
     }
 
     getSelfInfo(timeoutMillis = null) {
@@ -963,6 +1098,7 @@ class Connection extends EventEmitter {
             const onContactMessageReceived = (message) => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
                 resolve({
                     contactMessage: message,
@@ -973,9 +1109,21 @@ class Connection extends EventEmitter {
             const onChannelMessageReceived = (message) => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
                 resolve({
                     channelMessage: message,
+                });
+            }
+
+            // resolve promise when we receive channel data
+            const onChannelDataReceived = (message) => {
+                this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
+                this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
+                resolve({
+                    channelData: message,
                 });
             }
 
@@ -983,6 +1131,7 @@ class Connection extends EventEmitter {
             const onNoMoreMessagesReceived = () => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
                 resolve(null);
             }
@@ -990,6 +1139,7 @@ class Connection extends EventEmitter {
             // listen for events
             this.once(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
             this.once(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+            this.once(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
             this.once(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
 
             // sync next message from device
@@ -1596,6 +1746,8 @@ class Connection extends EventEmitter {
                         last_snr: bufferReader.readInt16LE(), // int16_t last_snr
                         n_direct_dups: bufferReader.readUInt16LE(), // uint16_t n_direct_dups
                         n_flood_dups: bufferReader.readUInt16LE(), // uint16_t n_flood_dups
+                        total_rx_air_time_secs: bufferReader.getRemainingBytesCount() >= 4 ? bufferReader.readUInt32LE() : null,
+                        n_recv_errors: bufferReader.getRemainingBytesCount() >= 4 ? bufferReader.readUInt32LE() : null,
                     }
 
                     resolve(repeaterStats);
@@ -1761,87 +1913,127 @@ class Connection extends EventEmitter {
         });
     }
 
-    // @deprecated migrate to using tracePath instead. pingRepeaterZeroHop will be removed in a future update
-    pingRepeaterZeroHop(contactPublicKey, timeoutMillis) {
+    /**
+     * Set the flood scope to use by provided a 16-byte transport key.
+     * Passing an empty list will clear the scope.
+     * You can use `const transportKey = await TransportKeyUtil.getHashtagRegionKey("#region");` to easily generate keys
+     * @param transportKey Uint8Array 16-byte transport key, can be derived from first 16 bytes of sha256("#region")
+     * @returns {Promise<unknown>}
+     */
+    setFloodScope(transportKey) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                // create raw data using custom packet
-                const bufferWriter = new BufferWriter();
-                bufferWriter.writeUInt32LE(Date.now()); // timestamp millis so every ping is unique
-                bufferWriter.writeBytes([0x70, 0x69, 0x6E, 0x67]); // "ping" as bytes
-                bufferWriter.writeBytes(contactPublicKey.subarray(0, 2)); // 2 bytes from the repeaters public key, so we don't use another repeaters ping response
-                const rawBytes = bufferWriter.toBytes();
-
-                var startMillis = Date.now();
-
-                // resolve promise when we receive expected response
-                const onLogRxDataPush = (response) => {
-
-                    // calculate round trip time
-                    const endMillis = Date.now();
-                    const durationMillis = endMillis - startMillis;
-
-                    // parse packet from rx data, and make sure it's expected type
-                    const packet = Packet.fromBytes(response.raw);
-                    if(packet.payload_type !== Packet.PAYLOAD_TYPE_RAW_CUSTOM){
-                        return;
-                    }
-
-                    // make sure the payload we sent, is the payload we received
-                    if(!BufferUtils.areBuffersEqual(packet.payload, rawBytes)){
-                        return;
-                    }
-
-                    // ping successful remove all listeners
+                // resolve promise when we receive ok
+                const onOk = (response) => {
+                    this.off(Constants.ResponseCodes.Ok, onOk);
                     this.off(Constants.ResponseCodes.Err, onErr);
-                    this.off(Constants.PushCodes.LogRxData, onLogRxDataPush);
-
-                    // send back results
-                    resolve({
-                        rtt: durationMillis,
-                        snr: response.lastSnr,
-                        rssi: response.lastRssi,
-                    });
-
+                    resolve(response);
                 }
 
                 // reject promise when we receive err
                 const onErr = () => {
+                    this.off(Constants.ResponseCodes.Ok, onOk);
                     this.off(Constants.ResponseCodes.Err, onErr);
-                    this.off(Constants.PushCodes.LogRxData, onLogRxDataPush);
                     reject();
                 }
 
                 // listen for events
+                this.once(Constants.ResponseCodes.Ok, onOk);
                 this.once(Constants.ResponseCodes.Err, onErr);
-                this.on(Constants.PushCodes.LogRxData, onLogRxDataPush);
 
-                // check if a timeout was provided
-                if(timeoutMillis != null){
-                    setTimeout(() => {
-
-                        // stop listening for events
-                        this.off(Constants.ResponseCodes.Err, onErr);
-                        this.off(Constants.PushCodes.LogRxData, onLogRxDataPush);
-
-                        // reject since it timed out
-                        reject("timeout");
-
-                    }, timeoutMillis);
-                }
-
-                // send raw data to repeater, for it to repeat zero hop
-                await this.sendCommandSendRawData([
-                    // we set the repeater we want to ping as the path
-                    // it should repeat our packet, and we can listen for it
-                    contactPublicKey.subarray(0, 1),
-                ], rawBytes);
+                // send set flood scope
+                await this.sendCommandSetFloodScope(transportKey);
 
             } catch(e) {
                 reject(e);
             }
         });
+    }
+
+    getStats(statsType) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // resolve promise when we receive stats
+                const onStats = (response) => {
+
+                    // make sure stats response is for this stats request
+                    if(response.type !== statsType){
+                        return;
+                    }
+
+                    this.off(Constants.ResponseCodes.Stats, onStats);
+                    this.off(Constants.ResponseCodes.Err, onErr);
+                    resolve(response);
+
+                }
+
+                // reject promise when we receive err
+                const onErr = () => {
+                    this.off(Constants.ResponseCodes.Stats, onStats);
+                    this.off(Constants.ResponseCodes.Err, onErr);
+                    reject();
+                }
+
+                // listen for events
+                this.once(Constants.ResponseCodes.Stats, onStats);
+                this.once(Constants.ResponseCodes.Err, onErr);
+
+                // send get stats
+                await this.sendCommandGetStats(statsType);
+
+            } catch(e) {
+                reject(e);
+            }
+        });
+    }
+
+    getStatsCore() {
+        return this.getStats(Constants.StatsTypes.Core);
+    }
+
+    getStatsRadio() {
+        return this.getStats(Constants.StatsTypes.Radio);
+    }
+
+    getStatsPackets() {
+        return this.getStats(Constants.StatsTypes.Packets);
+    }
+
+    sendChannelData(channelIdx, pathLen, path, dataType, payload) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // resolve promise when we receive ok
+                const onOk = (response) => {
+                    this.off(Constants.ResponseCodes.Ok, onOk);
+                    this.off(Constants.ResponseCodes.Err, onErr);
+                    resolve(response);
+                }
+
+                // reject promise when we receive err
+                const onErr = () => {
+                    this.off(Constants.ResponseCodes.Ok, onOk);
+                    this.off(Constants.ResponseCodes.Err, onErr);
+                    reject();
+                }
+
+                // listen for events
+                this.once(Constants.ResponseCodes.Ok, onOk);
+                this.once(Constants.ResponseCodes.Err, onErr);
+
+                // send channel data
+                await this.sendCommandSendChannelData(channelIdx, pathLen, path, dataType, payload);
+
+            } catch(e) {
+                reject(e);
+            }
+        });
+    }
+
+    clearFloodScope() {
+        return this.setFloodScope([]);
     }
 
     getChannel(channelIdx) {

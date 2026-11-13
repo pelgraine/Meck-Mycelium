@@ -1,6 +1,6 @@
 class Constants {
 
-    static SupportedCompanionProtocolVersion = 1;
+    static SupportedCompanionProtocolVersion = 3;
 
     static SerialFrameTypes = {
         Incoming: 0x3e, // ">"
@@ -11,6 +11,16 @@ class Constants {
         ServiceUuid: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E",
         CharacteristicUuidRx: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E",
         CharacteristicUuidTx: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
+    }
+
+    static DataTypes = {
+        Dev: 0xFFFF, // developer namespace for experimenting with group/channel datagrams and building apps
+    }
+
+    static StatsTypes = {
+        Core: 0,
+        Radio: 1,
+        Packets: 2,
     }
 
     static CommandCodes = {
@@ -52,6 +62,12 @@ class Constants {
         SendTelemetryReq: 39,
 
         SendBinaryReq: 50,
+
+        SetFloodScope: 54,
+
+        GetStats: 56,
+
+        SendChannelData: 62,
     }
 
     static ResponseCodes = {
@@ -71,9 +87,13 @@ class Constants {
         DeviceInfo: 13,
         PrivateKey: 14,
         Disabled: 15,
+        ContactMsgRecvV3: 16,
+        ChannelMsgRecvV3: 17,
         ChannelInfo: 18,
         SignStart: 19,
         Signature: 20,
+        Stats: 24,
+        ChannelDataRecv: 27,
     }
 
     static PushCodes = {
@@ -90,6 +110,7 @@ class Constants {
         NewAdvert: 0x8A, // when companion is set to manually add contacts
         TelemetryResponse: 0x8B,
         BinaryResponse: 0x8C,
+        ControlData: 0x8E,
     }
 
     static ErrorCodes = {
