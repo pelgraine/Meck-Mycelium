@@ -32,6 +32,17 @@
     .message-content {
         color: rgb(var(--mdui-color-on-surface-variant));
     }
+
+    .message-status {
+        color: rgb(var(--mdui-color-on-surface-variant));
+        font-size: var(--mdui-typescale-body-small-size);
+        margin-left: 0.5rem;
+    }
+
+    .message-status.tappable {
+        cursor: pointer;
+        text-decoration: underline dotted;
+    }
     
     .input-bar {
         bottom: 0;
@@ -116,6 +127,7 @@
         <span id="contactName" class="contact-name"></span>
         <span style="margin-left: 0.25rem;"></span>
         <time-stamp id="messageTimeStamp" class="message-timestamp" type="datetime"></time-stamp>
+        <span id="messageStatus" class="message-status"></span>
         <span id="messageContent" class="message-content" slot="description"></span>
     </mdui-list-item>
 </template>

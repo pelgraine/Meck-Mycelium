@@ -7,6 +7,7 @@ import VoiceReceiver from './libs/voice_receiver.js';
 import VoiceSender from './libs/voice_sender.js';
 import VoiceChannel, { VOICE_CHANNEL_NAME, VOICE_CHANNEL_STORE_KEY } from './libs/voice_channel.js';
 import { channelKey, splitSender } from './libs/channels.js';
+import DeliveryTracker from './libs/delivery.js';
 
 class App extends EventTarget {
     constructor() {
@@ -90,6 +91,9 @@ this.voiceRx = new VoiceReceiver();
             });
             this.dispatchEvent(new CustomEvent("voicechannel"));
         };
+
+        // Delivery and repeats of messages sent from this app
+        this.delivery = new DeliveryTracker(this);
 
         this.defineUserInterface();
         this.setupSettings();
@@ -222,6 +226,11 @@ this.voiceRx = new VoiceReceiver();
         this.subscribeEvents();
     }
 
+    // A recipient confirmed a direct message (PUSH_CODE_SEND_CONFIRMED)
+    handleMessageAck(data) {
+        this.delivery.onAck(data);
+    }
+
     async disconnect() {
         this.device.close();
         this.device.emit("disconnected", {});
@@ -233,7 +242,9 @@ this.voiceRx = new VoiceReceiver();
         this.device.on("connected", () => this.handleConnected());
         this.device.on("disconnected", () => this.handleDisconnected());
         this.device.on(Constants.PushCodes.MsgWaiting, () => this.syncMessages());
-        this.device.on(Constants.PushCodes.SendConfirmed, () => this.handleMessageAck());
+        this.device.on(Constants.PushCodes.SendConfirmed, (data) => this.handleMessageAck(data));
+        // Every packet the radio hears, used to spot repeaters passing our messages on
+        this.device.on(Constants.PushCodes.LogRxData, (data) => this.delivery.onRxLog(data));
    this.device.on(Constants.PushCodes.RawData, (data) => {
             this.voiceRx.onRawData(data.payload);   // 0x56 voice packets
             this.voiceTx.onRawData(data.payload);   // 0x72 fetch requests for notes we sent
