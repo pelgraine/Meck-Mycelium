@@ -1,0 +1,128 @@
+<route-settings
+    title="#meck-voice"
+    backbutton="true"
+    navbar="false"
+    titlebar="true"
+></route-settings>
+
+<style>
+    .voice-page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .voice-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column-reverse;
+    }
+
+    .voice-item-meta {
+        color: rgb(var(--mdui-color-on-surface-variant));
+        font-size: var(--mdui-typescale-body-small-size);
+    }
+
+    .voice-item-title {
+        font-size: large;
+        font-weight: 500;
+        color: rgb(var(--mdui-color-on-surface));
+    }
+
+    .voice-message {
+        cursor: pointer;
+        color: rgb(var(--mdui-color-primary));
+        font-weight: 500;
+        font-size: var(--mdui-typescale-body-large-size);
+    }
+
+    .voice-new {
+        color: rgb(var(--mdui-color-primary));
+        font-weight: 700;
+    }
+
+    .input-bar {
+        bottom: 0;
+        background: var(--mdui-color-background);
+        padding: 0.5rem;
+    }
+
+    .voice-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.25rem 0.5rem 0.5rem;
+    }
+
+    .voice-status {
+        flex: 1;
+        min-width: 8rem;
+        color: rgb(var(--mdui-color-on-surface-variant));
+        font-size: var(--mdui-typescale-body-medium-size);
+    }
+
+    .voice-level {
+        flex-basis: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: rgb(var(--mdui-color-surface-variant));
+        overflow: hidden;
+    }
+
+    .voice-level-fill {
+        height: 100%;
+        width: 0;
+        background: rgb(var(--mdui-color-primary));
+    }
+
+    .record-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .record-hint {
+        color: rgb(var(--mdui-color-on-surface-variant));
+        font-size: var(--mdui-typescale-body-medium-size);
+    }
+</style>
+
+<template id="voiceItemTemplate">
+    <mdui-list-item alignment="start">
+        <mdui-avatar id="voiceAvatar" slot="icon"></mdui-avatar>
+        <span id="voiceTitle" class="voice-item-title"></span>
+        <span style="margin-left: 0.25rem;"></span>
+        <time-stamp id="voiceTimeStamp" class="voice-item-meta" type="datetime"></time-stamp>
+        <span id="voiceContent" class="voice-message" slot="description"></span>
+    </mdui-list-item>
+</template>
+
+<div class="voice-page">
+    <div class="voice-list">
+        <mdui-list id="voiceList" class="hidden"></mdui-list>
+    </div>
+
+    <div id="voiceNotice" class="pageNotice">
+        <span id="voiceNoticeTitle">No voice messages yet</span>
+        <span id="voiceNoticeText">Voice messages sent to #meck-voice by anyone on the channel appear here.</span>
+        <mdui-button id="addChannelButton" class="hidden" variant="filled" icon="add">Add #meck-voice to this radio</mdui-button>
+    </div>
+
+    <div class="input-bar">
+        <div id="voiceBar" class="voice-bar hidden">
+            <span id="voiceStatus" class="voice-status"></span>
+            <mdui-button id="voicePlayButton" variant="tonal" icon="play_arrow" class="hidden">Play</mdui-button>
+            <mdui-button id="voiceSendButton" variant="filled" icon="send" class="hidden">Send</mdui-button>
+            <mdui-button id="voiceDiscardButton" variant="text" icon="delete" class="hidden">Discard</mdui-button>
+            <div id="voiceLevel" class="voice-level hidden"><div id="voiceLevelFill" class="voice-level-fill"></div></div>
+        </div>
+        <div class="record-row">
+            <span class="record-hint">To everyone on #meck-voice, by flood (au-nsw-voice region)</span>
+            <mdui-button-icon id="micButton" icon="mic" variant="tonal" title="Record a voice message"></mdui-button-icon>
+        </div>
+    </div>
+</div>

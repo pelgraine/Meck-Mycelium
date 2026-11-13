@@ -1,5 +1,5 @@
 // =============================================================================
-// voice_sender.js -- sends voice notes as direct messages in the VE3 format
+// voice_sender.js -- sends voice messages as direct messages in the VE3 format
 // used by Meck (VoiceMessageScreen.h), Meck-P4 and Meck Watch:
 //
 //   1. a text DM "VE3:{sid}:{mode}:{total}:{dur}" (base36 fields, mode 1 =

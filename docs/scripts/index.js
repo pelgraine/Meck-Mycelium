@@ -5,6 +5,7 @@ import { SimpleDB } from "./storage.js";
 import { CustomElements } from "./customElements.js";
 import VoiceReceiver from './libs/voice_receiver.js';
 import VoiceSender from './libs/voice_sender.js';
+import VoiceChannel, { VOICE_CHANNEL_NAME, VOICE_CHANNEL_STORE_KEY } from './libs/voice_channel.js';
 
 class App extends EventTarget {
     constructor() {
@@ -67,6 +68,27 @@ this.voiceRx = new VoiceReceiver();
             () => (this.isConnected ? this.device : null),
             () => this.contacts
         );
+
+        // Voice messages on the #meck-voice channel (Meck Watch / Meck-P4 format)
+        this.voiceChannel = new VoiceChannel(() => (this.isConnected ? this.device : null));
+        this.voiceChannel.onReady = async ({ sessionId, senderName, durationSec, total, packets, startedAt }) => {
+            const received = packets.filter(p => p).length;
+            try {
+                await this.db.add("messages", {
+                    publicKey: VOICE_CHANNEL_STORE_KEY,
+                    channelVoice: { sessionId, senderName, durationSec, total, packets, received, outgoing: false, unread: true },
+                    timestamp: startedAt
+                });
+            } catch (e) {
+                console.warn("Voice channel: could not save message", e);
+            }
+            snackbar({
+                message: `Voice message from ${senderName || "someone"} on ${VOICE_CHANNEL_NAME}` + (received < total ? ` (${received} of ${total} packets)` : ""),
+                autoCloseDelay: 4000,
+                closeOnOutsideClick: true
+            });
+            this.dispatchEvent(new CustomEvent("voicechannel"));
+        };
 
         this.defineUserInterface();
         this.setupSettings();
@@ -250,6 +272,7 @@ this.voiceRx = new VoiceReceiver();
 
     async handleConnected() {
         this.isConnected = true;
+        this.voiceChannel.resetRadio();
         this.info = await this.device.getSelfInfo();
         this.contacts = await this.device.getContacts();
 
@@ -267,6 +290,7 @@ this.voiceRx = new VoiceReceiver();
 
     async handleDisconnected() {
         this.isConnected = false;
+        this.voiceChannel.resetRadio();
         this.device = null;
 
         this.ui.radioIndercatorName.innerText = "Disconnected";
@@ -300,6 +324,11 @@ this.voiceRx = new VoiceReceiver();
                 }
             } else if (message.channelMessage) {
                 console.log(message);
+            } else if (message.channelData) {
+                // Meck: voice messages on #meck-voice arrive as channel data (type 0xFF56)
+                if (await this.voiceChannel.isVoiceData(message.channelData)) {
+                    this.voiceChannel.onChannelData(message.channelData.data);
+                }
             }
 
             this.dispatchEvent(new CustomEvent("message", message));

@@ -1,7 +1,7 @@
 // =============================================================================
-// voice_codec.js -- recording, filtering and Codec2 1200 for Meck voice notes
+// voice_codec.js -- recording, filtering and Codec2 1200 for Meck voice messages
 //
-// Matches Meck Watch's voice notes (WatchVoiceScreen.h, "version B" of the
+// Matches Meck Watch's voice messages (WatchVoiceScreen.h, "version B" of the
 // Nov 2026 audio test): DC removal, normalise so 99.9% of samples sit below
 // 90% of full scale, 150 Hz high-pass (2nd-order Butterworth, RBJ biquad),
 // then a 31-tap Hamming windowed-sinc 3.6 kHz low-pass to go 16 kHz -> 8 kHz
