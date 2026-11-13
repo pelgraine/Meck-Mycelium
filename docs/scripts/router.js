@@ -37,9 +37,13 @@ export class Router {
     }
 
     static async loadPage(route, params = {}) {
-        if (this.currentRouteModule?.cleanup) {
-            this.currentRouteModule.cleanup();
+        // Let the page being left tidy up (stop recordings, remove listeners).
+        // This used to check currentRouteModule, which was never set, so no
+        // page's cleanup() ran.
+        if (this.currentPageModule?.cleanup) {
+            this.currentPageModule.cleanup();
         }
+        this.currentPageModule = null; // a page without a JS module mustn't inherit the last one
 
         const responcse = await fetch(`${this.basePath}routes/${route}.html`);
         if (!responcse.ok) {
