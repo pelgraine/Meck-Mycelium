@@ -19,7 +19,7 @@ There are two ways to send one:
 **A 2.4 GHz node with stock MeshCore companion firmware**
 
 - Any node that runs MeshCore on 2.4 GHz.
-- Companion firmware, version 1.18.0 or newer. Use the Bluetooth version, or the USB version if you'll connect with a cable.
+- Bluetooth companion firmware, version 1.18.0 or newer. Most people connect over Bluetooth, and it's the only way on an iPhone or iPad. (On a computer or Android device you can use the USB companion firmware and a cable instead, if you prefer.)
 - Set to the same 2.4 GHz radio settings as the voice mesh near you. Mycelium can't change radio settings, so set these first with the MeshCore app. If you're not sure what they are, ask your local mesh group.
 
 **Repeaters that carry voice**
@@ -29,15 +29,18 @@ There are two ways to send one:
 - If you run a repeater and want it to carry voice, add the au-nsw-voice region to it.
 - You don't need to set any region on your own node. Mycelium tags each voice message for you.
 
-**A phone or computer with a browser that can talk to your node**
+**A phone or computer with a browser that can talk to your node over Bluetooth**
 
-| Device | Browser | Bluetooth | USB cable |
-| --- | --- | --- | --- |
-| Android phone or tablet | Chrome (also Edge, Samsung Internet) | Yes | Chrome 148 or newer |
-| Windows or Mac | Chrome or Edge | Yes | Yes |
-| Linux | Chrome or Edge | Not switched on by default | Yes |
-| Linux, Windows or Mac | Firefox 151 or newer | No | Yes |
-| iPhone or iPad | The free **Bluefy** app (not Safari) | Yes | No |
+| Device | Browser to use |
+| --- | --- |
+| Android phone or tablet | Chrome (Edge and Samsung Internet also work) |
+| Windows or Mac | Chrome or Edge |
+| iPhone or iPad | The free **Bluefy** app from the App Store (Safari can't use Bluetooth) |
+| Linux | Chrome or Edge, but Bluetooth isn't switched on by default there, so a USB cable is easier |
+
+Firefox can't use Bluetooth at all. Firefox 151 or newer can connect with a USB cable.
+
+USB cables work in Chrome and Edge on Windows, Mac and Linux, and in Chrome 148 or newer on Android.
 
 This table is based on MDN's browser support data (checked 13 November 2026). So far, voice messages have only been tried on an iPhone in Bluefy. If something doesn't work in your browser, please let us know.
 
@@ -46,7 +49,7 @@ This table is based on MDN's browser support data (checked 13 November 2026). So
 1. **Open the app** at https://pelgraine.github.io/Meck-Mycelium/ in one of the browsers above.
 2. **Connect your node.**
    - Go to the **Settings** tab and tap **Connect Device**.
-   - Choose **Ble** for Bluetooth, or **Usb** if your node is plugged in with a cable.
+   - Choose **Ble** (Bluetooth). Only choose **Usb** if your node is plugged into a computer or Android device with a cable.
    - Pick your node from the list. If you're asked for a PIN, enter your node's Bluetooth PIN.
    - The chip at the top right changes to **Connected**.
 3. **Open the voice channel.** Go to the **Chats** tab and tap **#meck-voice**.
